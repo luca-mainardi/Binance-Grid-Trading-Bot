@@ -1,11 +1,9 @@
-
-from itertools import count
 import ccxt
 from matplotlib.animation import FuncAnimation
 import matplotlib.pyplot as plt
 from datetime import datetime
 
-exchange = ccxt.binance({})
+exchange = ccxt.binance()
 
 cryptocurr = input("Select Cryptocurrency: ")
 curr = input("Select Currency: ")
@@ -18,7 +16,6 @@ def get_crypto_price(cryptocurrency, currency):
 
 
 plt.style.use('seaborn')
-#plt.autoscale(enable=True, tight=True)
 
 x_vals = []
 y_vals = []
@@ -29,12 +26,8 @@ buy_lines = []
 sell_lines = []
 
 for i in range(int(num_grid_lines)):
-    #plt.axhline(current_price + grid_size*(i+1), color='green', linewidth=0.5)
-    #plt.axhline(current_price - grid_size*(i+1), color='red', linewidth=0.5)
     buy_lines.append(current_price - grid_size*(i+1))
     sell_lines.append(current_price + grid_size*(i+1))
-
-index = count()
 
 
 def animate(i):
@@ -55,9 +48,6 @@ def animate(i):
 
     # plt.xlabel("Date")
     # plt.ylabel("Price")
-
-    # plt.plot_date(x_vals, y_vals, linestyle="solid",
-    #            ms=0, color='black', linewidth=0.5)
 
     plt.tight_layout()
 
