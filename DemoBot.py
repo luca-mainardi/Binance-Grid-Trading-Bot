@@ -164,15 +164,15 @@ def start_demo_bot(exchange, account):
                 write_json_buy_lines(buy_orders)
                 write_json_sell_lines(sell_orders)
 
-                print("SELL ORDERS:")
-                for order in sell_orders:
-                    if order['status'] == 'open':
-                        print(order['price'])
+                # print("SELL ORDERS:")
+                # for order in sell_orders:
+                #     if order['status'] == 'open':
+                #         print(order['price'])
 
-                print("BUY ORDERS:")
-                for order in buy_orders:
-                    if order['status'] == 'open':
-                        print(order['price'])
+                # print("BUY ORDERS:")
+                # for order in buy_orders:
+                #     if order['status'] == 'open':
+                #         print(order['price'])
 
                 # update order_count
                 order_count += 1
@@ -229,15 +229,15 @@ def start_demo_bot(exchange, account):
                 write_json_buy_lines(buy_orders)
                 write_json_sell_lines(sell_orders)
 
-                print("SELL ORDERS:")
-                for order in sell_orders:
-                    if order['status'] == 'open':
-                        print(order['price'])
+                # print("SELL ORDERS:")
+                # for order in sell_orders:
+                #     if order['status'] == 'open':
+                #         print(order['price'])
 
-                print("BUY ORDERS:")
-                for order in buy_orders:
-                    if order['status'] == 'open':
-                        print(order['price'])
+                # print("BUY ORDERS:")
+                # for order in buy_orders:
+                #     if order['status'] == 'open':
+                #         print(order['price'])
 
                 # update order_count
                 order_count += 1
