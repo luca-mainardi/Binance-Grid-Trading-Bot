@@ -43,8 +43,8 @@ def animate(i):
 
     plt.plot(x_vals, y_vals, color='black')
 
-    #plt.title(cryptocurr + " Price Live Plotting")
-   # plt.gcf().canvas.set_window_title("Live Plotting Cryptocurrency")
+    plt.title(cryptocurr + " Price Live Plotting")
+    plt.gcf().canvas.set_window_title("Live Plotting Cryptocurrency")
 
     # plt.xlabel("Date")
     # plt.ylabel("Price")
