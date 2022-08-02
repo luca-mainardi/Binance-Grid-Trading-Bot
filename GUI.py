@@ -1,5 +1,6 @@
-from cmath import exp
-from tkinter import font
+
+import platform
+from tkinter import Button, font
 import ccxt
 import matplotlib
 from matplotlib import colors
@@ -9,6 +10,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
 from matplotlib.backend_bases import key_press_handler
+import tkmacosx
 
 from datetime import datetime
 
@@ -36,11 +38,11 @@ def start_gui(exchange: ccxt) -> None:
     plt.style.use('seaborn-deep')
 
     window = tkinter.Tk()
+    window.geometry('1200x750')
     window.wm_title("Grid Bot")
     window.configure(bg='#212124')
-    window.geometry('1200x700')
-    window.resizable(False, False)
-    #window.attributes('-fullscreen', False)
+    #window.resizable(False, False)
+    #window.attributes('-fullscreen', True)
 
     #window.columnconfigure(0, weight=1)
     #window.rowconfigure(0, weight=1)
@@ -50,6 +52,7 @@ def start_gui(exchange: ccxt) -> None:
     # fig.suptitle("TITOLO")
 
     ax = fig.add_subplot(111)
+    ax.set_title('Title')  # NON funziona
     ax.set_facecolor('#000000')
     ax.spines['top'].set_color('#818181')
     ax.spines['bottom'].set_color('#818181')
@@ -63,7 +66,7 @@ def start_gui(exchange: ccxt) -> None:
     # plot_frame.configure(bg='white')
 
     canvas = FigureCanvasTkAgg(fig, master=window)
-    canvas.draw()
+    # canvas.draw()
     #canvas.get_tk_widget().pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
     canvas.get_tk_widget().grid(row=0, column=0, columnspan=2)
 
@@ -98,10 +101,10 @@ def start_gui(exchange: ccxt) -> None:
 
         for order in buy_orders:
             if order['status'] == 'open':
-                ax.axhline(order['price'], color='red', linewidth=0.5)
+                ax.axhline(order['price'], color='#FF605C', linewidth=0.5)
         for order in sell_orders:
             if order['status'] == 'open':
-                ax.axhline(order['price'], color='green', linewidth=0.5)
+                ax.axhline(order['price'], color='#00Ca4E', linewidth=0.5)
 
         ax.plot(x_vals, y_vals, color='#818181')
 
@@ -135,7 +138,7 @@ def start_gui(exchange: ccxt) -> None:
     label_check_frequency = tkinter.Label(
         config_frame_left, text="Check Frequency", fg='#818181')
 
-    entry_symbol = tkinter.Entry(config_frame_left)
+    entry_symbol = tkinter.Entry(config_frame_left, fg='#818181')
     entry_position_size = tkinter.Entry(config_frame_left)
     entry_check_frequency = tkinter.Entry(config_frame_left)
 
@@ -172,6 +175,22 @@ def start_gui(exchange: ccxt) -> None:
 
     config_frame_left.grid(row=1, column=0)
     config_frame_right.grid(row=1, column=1)
+
+    # Buttons
+    buttons_frame = tkinter.Frame(window)
+    buttons_frame.configure(bg='#212124')
+
+    if platform.system() == 'Darwin':
+        button_start_bot = tkmacosx.Button(
+            buttons_frame, text="    Start Bot    ", width=300, fg='white', bg='#00Ca4E', borderless=True)
+        button_stop_bot = tkmacosx.Button(
+            buttons_frame, text="    Stop Bot     ", width=300, fg='white', bg='#FF605C', borderless=True)
+
+    empty_label = tkinter.Label(buttons_frame, bg='#212124')
+    button_start_bot.grid(row=0, column=0)
+    empty_label.grid(row=1, column=0)
+    button_stop_bot.grid(row=2, column=0)
+    buttons_frame.grid(row=1, column=2)
 
     # frame1 = tkinter.Frame(master=frame)
     # frame1.configure(bg='red')
