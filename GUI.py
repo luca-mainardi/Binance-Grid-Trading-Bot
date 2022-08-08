@@ -1,219 +1,218 @@
-
 import platform
-from tkinter import Button, font
-import ccxt
-import matplotlib
-from matplotlib import colors
+import multiprocessing
 from matplotlib.animation import FuncAnimation
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_tkagg import (
-    FigureCanvasTkAgg, NavigationToolbar2Tk)
-from matplotlib.backend_bases import key_press_handler
-import tkmacosx
-
+from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg)
 from datetime import datetime
-
-from pyparsing import col
-import config
-from DemoBot import get_crypto_price
+import tkmacosx
 import json
 import tkinter
 
-# matplotlib.use("Qt5Agg")
+import DemoBot
+import config
 
 
+class GUI(tkinter.Tk):
+
+    def __init__(self, exchange, account) -> None:
+        super().__init__()
+        self.bot = None
+        self.mode = 'demo'
+        self.x_vals = []
+        self.y_vals = []
+        self.exchange = exchange
+        self.account = account
+        self.configuration_entries = {}
+
+        self.initialize_window()
+        self.create_configuration_entries()
+        self.create_buttons()
+        self.create_chart()
+
+    def initialize_window(self):
+
+        self.geometry('1200x750')
+        self.wm_title("Grid Bot")
+        self.configure(bg='#212124')
+        self.resizable(False, False)
+
+    def create_chart(self):
+        plt.style.use('seaborn-deep')
+
+        fig = Figure(figsize=(8, 6), dpi=100)
+        fig.patch.set_facecolor('#212124')
+
+        ax = fig.add_subplot(111)
+        ax.set_facecolor('#000000')
+        ax.spines['top'].set_color('#818181')
+        ax.spines['bottom'].set_color('#818181')
+        ax.spines['left'].set_color('#818181')
+        ax.spines['right'].set_color('#818181')
+
+        ax.tick_params(axis='x', colors='#818181')
+        ax.tick_params(axis='y', colors='#818181')
+
+        canvas = FigureCanvasTkAgg(fig, master=self)
+        canvas.get_tk_widget().grid(row=0, column=0, columnspan=2)
+
+        clear_grid()
+
+        def animate(i):
+
+            buy_orders = read_json_buy_lines()
+            sell_orders = read_json_sell_lines()
+
+            self.x_vals.append(datetime.now())
+            self.y_vals.append(DemoBot.get_crypto_price(
+                self.exchange, config.get_Symbol()))
+
+            ax.clear()
+
+            for order in buy_orders:
+                if order['status'] == 'open':
+                    ax.axhline(
+                        order['price'], color='#FF605C', linewidth=0.5)
+            for order in sell_orders:
+                if order['status'] == 'open':
+                    ax.axhline(
+                        order['price'], color='#00Ca4E', linewidth=0.5)
+
+            ax.plot(self.x_vals, self.y_vals, color='#818181')
+
+        ani = FuncAnimation(
+            fig, animate, interval=config.get_Check_Frequency())
+        self.update()
+
+    def create_configuration_entries(self):
+
+        config_frame_left = tkinter.Frame(master=self)
+        config_frame_left.grid(row=1, column=0)
+
+        label_symbol = tkinter.Label(
+            config_frame_left, text="Symbol", fg='#818181')
+        label_symbol.grid(row=0, column=0)
+
+        label_position_size = tkinter.Label(
+            config_frame_left, text="Position Size", fg='#818181')
+        label_position_size.grid(row=1, column=0)
+
+        label_check_frequency = tkinter.Label(
+            config_frame_left, text="Check Frequency", fg='#818181')
+        label_check_frequency.grid(row=2, column=0)
+
+        entry_symbol = tkinter.Entry(config_frame_left, fg='#818181')
+        entry_symbol.grid(row=0, column=1)
+        self.configuration_entries['symbol'] = entry_symbol
+
+        entry_position_size = tkinter.Entry(config_frame_left)
+        entry_position_size.grid(row=1, column=1)
+        self.configuration_entries['position_size'] = entry_position_size
+
+        entry_check_frequency = tkinter.Entry(config_frame_left)
+        entry_check_frequency.grid(row=2, column=1)
+        self.configuration_entries['check_frequency'] = entry_check_frequency
+
+        config_frame_right = tkinter.Frame(master=self)
+        config_frame_right.grid(row=1, column=1)
+
+        label_num_buy_grid_lines = tkinter.Label(
+            config_frame_right, text="N. buy orders", fg='#818181')
+        label_num_buy_grid_lines.grid(row=0, column=0)
+
+        label_num_sell_grid_lines = tkinter.Label(
+            config_frame_right, text="N. sell orders Size", fg='#818181')
+        label_num_sell_grid_lines.grid(row=1, column=0)
+
+        label_grid_size = tkinter.Label(
+            config_frame_right, text="Grid size", fg='#818181')
+        label_grid_size.grid(row=2, column=0)
+
+        entry_num_buy_grid_lines = tkinter.Entry(config_frame_right)
+        entry_num_buy_grid_lines.grid(row=0, column=1)
+        self.configuration_entries['num_buy_grid_lines'] = entry_num_buy_grid_lines
+
+        entry_num_sell_grid_lines = tkinter.Entry(config_frame_right)
+        entry_num_sell_grid_lines.grid(row=1, column=1)
+        self.configuration_entries['num_sell_grid_lines'] = entry_num_sell_grid_lines
+
+        entry_grid_size = tkinter.Entry(config_frame_right)
+        entry_grid_size.grid(row=2, column=1)
+        self.configuration_entries['grid_size'] = entry_grid_size
+
+    def create_buttons(self):
+        buttons_frame = tkinter.Frame(master=self)
+        buttons_frame.configure(bg='#212124')
+        buttons_frame.grid(row=1, column=2)
+
+        if platform.system() == 'Darwin':
+            button_start_bot = tkmacosx.Button(
+                buttons_frame, text="    Start Bot    ", width=300, fg='white', bg='#00Ca4E', borderless=True, command=self.start_bot)
+            button_stop_bot = tkmacosx.Button(
+                buttons_frame, text="    Stop Bot     ", width=300, fg='white', bg='#FF605C', borderless=True, command=self.stop_bot)
+        else:
+            pass  # tkinter buttons
+
+        button_start_bot.grid(row=0, column=0)
+        button_stop_bot.grid(row=2, column=0)
+
+        empty_label = tkinter.Label(buttons_frame, bg='#212124')
+        empty_label.grid(row=1, column=0)
+
+    def start_bot(self):
+        if self.bot is None:
+            self.save_configuration_params()
+
+            # ani.event_source.stop()
+            # ax.clear()
+            self.x_vals = []
+            self.y_vals = []
+            # ani.event_source.start()
+
+            self.bot = multiprocessing.Process(
+                target=DemoBot.start_demo_bot, args=(self.exchange, self.account))
+            self.bot.start()
+        else:
+            pass
+
+    def stop_bot(self):
+        if self.bot is None:
+            pass
+        else:
+            self.bot.terminate()
+            self.bot = None
+            clear_grid()
+
+    def save_configuration_params(self):
+        pass
+        config.set_Symbol(self.configuration_entries['symbol'].get())
+        config.set_Position_Size(
+            self.configuration_entries['position_size'].get())
+        config.set_Check_Frequency(
+            self.configuration_entries['check_frequency'].get())
+        config.set_Num_Buy_Grid_Lines(
+            self.configuration_entries['num_buy_grid_lines'].get())
+        config.set_Num_Sell_Grid_Lines(
+            self.configuration_entries['num_sell_grid_lines'].get())
+        config.set_Grid_Size(self.configuration_entries['grid_size'].get())
+
+
+@staticmethod
 def read_json_buy_lines(filename="buy_lines.json"):
     with open(filename, 'r') as json_file:
         return json.load(json_file)
 
 
+@staticmethod
 def read_json_sell_lines(filename="sell_lines.json"):
     with open(filename, 'r') as json_file:
         return json.load(json_file)
 
 
-def start_gui(exchange: ccxt) -> None:
-
-    plt.style.use('seaborn-deep')
-
-    window = tkinter.Tk()
-    window.geometry('1200x750')
-    window.wm_title("Grid Bot")
-    window.configure(bg='#212124')
-    #window.resizable(False, False)
-    #window.attributes('-fullscreen', True)
-
-    #window.columnconfigure(0, weight=1)
-    #window.rowconfigure(0, weight=1)
-
-    fig = Figure(figsize=(8, 6), dpi=100)
-    fig.patch.set_facecolor('#212124')
-    # fig.suptitle("TITOLO")
-
-    ax = fig.add_subplot(111)
-    ax.set_title('Title')  # NON funziona
-    ax.set_facecolor('#000000')
-    ax.spines['top'].set_color('#818181')
-    ax.spines['bottom'].set_color('#818181')
-    ax.spines['left'].set_color('#818181')
-    ax.spines['right'].set_color('#818181')
-
-    ax.tick_params(axis='x', colors='#818181')
-    ax.tick_params(axis='y', colors='#818181')
-
-    #plot_frame = tkinter.Frame(window)
-    # plot_frame.configure(bg='white')
-
-    canvas = FigureCanvasTkAgg(fig, master=window)
-    # canvas.draw()
-    #canvas.get_tk_widget().pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
-    canvas.get_tk_widget().grid(row=0, column=0, columnspan=2)
-
-    #toolbar = NavigationToolbar2Tk(canvas, plot_frame)
-    # toolbar.configure(bg='white')
-    # toolbar.update()
-    #canvas.get_tk_widget().pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
-    #plot_frame.grid(row=0, column=0)
-
-    x_vals = []
-    y_vals = []
-
-    def animate(i):
-
-        buy_orders = read_json_buy_lines()
-        sell_orders = read_json_sell_lines()
-
-        # print("SELL ORDERS:")
-        # for order in sell_orders:
-        #     if order['status'] == 'open':
-        #         print(order['price'])
-        # print("BUY ORDERS:")
-        # for order in buy_orders:
-        #     if order['status'] == 'open':
-        #         print(order['price'])
-
-        x_vals.append(datetime.now())
-        y_vals.append(get_crypto_price(exchange, config.SYMBOL))
-
-        # plt.cla()
-        ax.clear()
-
-        for order in buy_orders:
-            if order['status'] == 'open':
-                ax.axhline(order['price'], color='#FF605C', linewidth=0.5)
-        for order in sell_orders:
-            if order['status'] == 'open':
-                ax.axhline(order['price'], color='#00Ca4E', linewidth=0.5)
-
-        ax.plot(x_vals, y_vals, color='#818181')
-
-    # plt.tight_layout()
-
-    # ani = FuncAnimation(plt.gcf(), animate,
-    #                   interval=config.CHECK_FREQUENCY)
-
-    # def on_key_press(event):
-    #     key_press_handler(event, canvas, toolbar)
-
-    # canvas.mpl_connect("key_press_event", on_key_press)
-
-    def _quit():
-        print("_______________________BUTTON___________________________")
-        window.quit()     # stops mainloop
-        window.destroy()  # this is necessary on Windows to prevent
-        # # Fatal Python Error: PyEval_RestoreThread: NULL tstate
-
-    # button = tkinter.Button(master=plot_frame, text="Quit", command=_quit)
-    # button.pack(side=tkinter.BOTTOM)
-
-    # # ---------------------------------------------------------------
-    # left configuration farme
-    config_frame_left = tkinter.Frame(master=window)
-
-    label_symbol = tkinter.Label(
-        config_frame_left, text="Symbol", fg='#818181')
-    label_position_size = tkinter.Label(
-        config_frame_left, text="Position Size", fg='#818181')
-    label_check_frequency = tkinter.Label(
-        config_frame_left, text="Check Frequency", fg='#818181')
-
-    entry_symbol = tkinter.Entry(config_frame_left, fg='#818181')
-    entry_position_size = tkinter.Entry(config_frame_left)
-    entry_check_frequency = tkinter.Entry(config_frame_left)
-
-    # right configuration frame
-    config_frame_right = tkinter.Frame(master=window)
-
-    label_num_buy_grid_lines = tkinter.Label(
-        config_frame_right, text="Symbol", fg='#818181')
-    label_num_buy_sell_lines = tkinter.Label(
-        config_frame_right, text="Position Size", fg='#818181')
-    label_grid_size = tkinter.Label(
-        config_frame_right, text="Check Frequency", fg='#818181')
-
-    entry_num_buy_grid_lines = tkinter.Entry(config_frame_right)
-    entry_num_sell_grid_lines = tkinter.Entry(config_frame_right)
-    entry_grid_size = tkinter.Entry(config_frame_right)
-
-    # grid configuration frame left
-    label_symbol.grid(row=0, column=0)
-    label_position_size.grid(row=1, column=0)
-    label_check_frequency.grid(row=2, column=0)
-
-    entry_symbol.grid(row=0, column=1)
-    entry_position_size.grid(row=1, column=1)
-    entry_check_frequency.grid(row=2, column=1)
-
-    label_num_buy_grid_lines.grid(row=0, column=0)
-    label_num_buy_sell_lines.grid(row=1, column=0)
-    label_grid_size.grid(row=2, column=0)
-
-    entry_num_buy_grid_lines.grid(row=0, column=1)
-    entry_num_sell_grid_lines.grid(row=1, column=1)
-    entry_grid_size.grid(row=2, column=1)
-
-    config_frame_left.grid(row=1, column=0)
-    config_frame_right.grid(row=1, column=1)
-
-    # Buttons
-    buttons_frame = tkinter.Frame(window)
-    buttons_frame.configure(bg='#212124')
-
-    if platform.system() == 'Darwin':
-        button_start_bot = tkmacosx.Button(
-            buttons_frame, text="    Start Bot    ", width=300, fg='white', bg='#00Ca4E', borderless=True)
-        button_stop_bot = tkmacosx.Button(
-            buttons_frame, text="    Stop Bot     ", width=300, fg='white', bg='#FF605C', borderless=True)
-
-    empty_label = tkinter.Label(buttons_frame, bg='#212124')
-    button_start_bot.grid(row=0, column=0)
-    empty_label.grid(row=1, column=0)
-    button_stop_bot.grid(row=2, column=0)
-    buttons_frame.grid(row=1, column=2)
-
-    # frame1 = tkinter.Frame(master=frame)
-    # frame1.configure(bg='red')
-    # frame1.grid(row=0, column=0)
-
-    # frame2 = tkinter.Frame(master=frame)
-    # frame2.configure(bg='green')
-    # frame2.grid(row=0, column=1)
-
-    # redbutton = tkinter.Button(frame, text="Red", fg="red")
-    # redbutton.pack(side=tkinter.LEFT)
-
-    # greenbutton = tkinter.Button(frame, text="Brown", fg="brown")
-    # greenbutton.pack(side=tkinter.LEFT)
-
-    # bluebutton = tkinter.Button(frame, text="Blue", fg="blue")
-    # bluebutton.pack(side=tkinter.LEFT)
-
-    # blackbutton = tkinter.Button(
-    #     canvas.get_tk_widget(), text="Black", fg="black")
-    # blackbutton.pack(side=tkinter.BOTTOM)
-    # ---------------------------------------------------------------
-
-    ani = FuncAnimation(fig, animate, interval=config.CHECK_FREQUENCY)
-    tkinter.mainloop()
-    # plt.show()
+@staticmethod
+def clear_grid():
+    empty_list = {}
+    with open("buy_lines.json", 'w') as f:
+        json.dump(empty_list, f, indent=4)
+    with open("sell_lines.json", 'w') as f:
+        json.dump(empty_list, f, indent=4)
