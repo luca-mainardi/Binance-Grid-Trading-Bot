@@ -50,6 +50,16 @@ def get_Check_Frequency():
     config = load_data()
     return float(config['CHECK_FREQUENCY'])
 
+
+def get_API_key():
+    config = load_data()
+    return config['API_KEY']
+
+
+def get_secret_key():
+    config = load_data()
+    return config['SECRET_KEY']
+
 # _________________________________ SETTERS ________________________________
 
 
@@ -86,4 +96,16 @@ def set_Grid_Size(new_Grid_Size):
 def set_Check_Frequency(new_Check_Frequency):
     config = load_data()
     config['CHECK_FREQUENCY'] = new_Check_Frequency
+    save_data(config)
+
+
+def set_API_key(new_API_key):
+    config = load_data()
+    config['API_KEY'] = new_API_key
+    save_data(config)
+
+
+def set_secret_key(new_secret_key):
+    config = load_data()
+    config['SECRET_KEY'] = new_secret_key
     save_data(config)
