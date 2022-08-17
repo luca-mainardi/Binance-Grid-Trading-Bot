@@ -32,13 +32,20 @@ def write_json_account_infos(data, filename="account_infos.json"):
         json.dump(data, f, indent=4)
 
 
-def start_bot(exchange):
+def start_bot():
 
     print("_____________________ START BOT _____________________\n")
 
+    try:
+        exchange = ccxt.binance(
+            {'apiKey': config.get_API_key(), 'secret': config.get_secret_key()})
+    except Exception as e:
+        print(e)
+        start_bot()
+
     # get name of currency and cryptocurrency
     currency = config.get_Symbol().split('/')[1]
-    cryptocurrency = config.get_Symbol().split('/')[1]
+    cryptocurrency = config.get_Symbol().split('/')[0]
     # get initial currency balance
     INITIAL_BALANCE = exchange.fetchBalance()[currency]['total']
 
@@ -70,7 +77,7 @@ def start_bot(exchange):
 
     # print initial balance
     print(f"\nInitial currency balance: {account['curr_balance']}")
-    print(f"Initial cryptocurrecny balance: {account['cryptocurr_balance']}")
+    print(f"Initial cryptocurrecny balance: {account['cryptocurr_balance']}\n")
 
     # _________________ grid construction __________________
 
@@ -80,18 +87,19 @@ def start_bot(exchange):
         price = ticker['bid'] - config.get_Grid_Size() * (i+1)
         order = exchange.create_limit_buy_order(
             config.get_Symbol(), config.get_Position_Size(), price)
-        buy_orders.append(order['info'])
+        buy_orders.append(order)
 
     for i in range(config.get_Num_Sell_Grid_Lines()):
         price = ticker['bid'] + config.get_Grid_Size() * (i+1)
         order = exchange.create_limit_sell_order(
             config.get_Symbol(), config.get_Position_Size(), price)
-        sell_orders.append(order['info'])
+        sell_orders.append(order)
 
     # ______________________________________________________
 
     # calculate total investment
-    initial_order_amount = initial_order['price'] * initial_order['amount']
+    initial_order_amount = float(
+        initial_order['price']) * float(initial_order['amount'])
     future_buy_amount = 0
 
     for buy_order in buy_orders:
@@ -125,32 +133,33 @@ def start_bot(exchange):
 
             # print price of the order
             print(
-                f"checking buy order {buy_order['id']}:  {buy_order['price']}")
+                f"\tchecking buy order {buy_order['id']}:  {buy_order['price']}\n")
 
             try:
-                order = exchange.fetch_order(buy_order['id'])
+                order = exchange.fetch_order(
+                    buy_order['id'], config.get_Symbol())
             except Exception as e:
                 print("Request failed, retrying...")
                 continue
 
-            order_info = order['info']
-
             # order has been executed
-            if order_info['status'] == 'closed':
+            if order['status'] == 'closed':
 
-                # set status to 'closed' so that the order is no longer shown in the chart of the GUI
+                # set status of the order in the list buy_orders to 'closed' so that
+                # the order is no longer shown in the chart of the GUI
                 buy_order['status'] = 'closed'
-                closed_orders.append(order_info)
+                closed_orders.append(order)
 
-                print(f"\tBuy order executed at {order_info['price']}")
+                print(f"\t\tBuy order executed at {order['price']}")
 
                 # create a new sell order above the closed order
                 new_sell_price = float(
-                    order_info['price']) + config.get_Grid_Size()
-                print(f"\tCreating new limit sell order at {new_sell_price}")
+                    order['price']) + config.get_Grid_Size()
+                print(
+                    f"\t\tCreating new limit sell order at {new_sell_price}\n")
                 new_sell_order = exchange.create_limit_sell_order(
                     config.get_Symbol(), config.get_Position_Size(), new_sell_price)
-                sell_orders.append(new_sell_order['info'])
+                sell_orders.append(new_sell_order)
 
                 # update json files
                 write_json_buy_lines(buy_orders)
@@ -173,10 +182,6 @@ def start_bot(exchange):
                 current_balance_in_curr - float(INITIAL_BALANCE), 2)
             # update account_infos.json
             write_json_account_infos(account)
-
-            print(f"\t\t\tCurrent currency balance: {account['curr_balance']}")
-            print(
-                f"\t\t\tCurrent cryptocurrency balance: {account['cryptocurr_balance']}\n")
 
             time.sleep(config.get_Check_Frequency())
 
@@ -190,31 +195,31 @@ def start_bot(exchange):
 
             # print price of the order
             print(
-                f"checking sell order {sell_order['id']}:  {sell_order['price']}")
+                f"\tchecking sell order {sell_order['id']}:  {sell_order['price']}\n")
 
             try:
-                order = exchange.fetch_order(sell_order['id'])
+                order = exchange.fetch_order(
+                    sell_order['id'], config.get_Symbol())
             except Exception as e:
                 print("Request failed, retrying...")
                 continue
 
-            order_info = order['info']
+            if order['status'] == 'closed':
 
-            if order_info['status'] == 'closed':
+                # set status of the order in the list sell_orders to 'closed' so that
+                # the order is no longer shown in the chart of the GUI
+                sell_order['status'] = 'closed'
+                closed_orders.append(order)
 
-                # set status to 'closed' so that the order is no longer shown in the chart of the GUI
-                buy_order['status'] = 'closed'
-                closed_orders.append(order_info)
-
-                print(f"\tSell order executed at {order_info['price']}")
+                print(f"\t\tSell order executed at {order['price']}")
 
                 # create a new buy order under the closed order
                 new_buy_price = float(
-                    order_info['price']) - config.get_Grid_Size()
-                print(f"\tCreating new limit buy order at {new_buy_price}")
+                    order['price']) - config.get_Grid_Size()
+                print(f"\t\tCreating new limit buy order at {new_buy_price}\n")
                 new_buy_order = exchange.create_limit_buy_order(
                     config.get_Symbol(), config.get_Position_Size(), new_buy_price)
-                buy_orders.append(new_buy_order['info'])
+                buy_orders.append(new_buy_order)
 
                 # update json files
                 write_json_buy_lines(buy_orders)
@@ -237,10 +242,6 @@ def start_bot(exchange):
                 current_balance_in_curr - float(INITIAL_BALANCE), 2)
             # update account_infos.json
             write_json_account_infos(account)
-
-            print(f"\t\t\tCurrent currency balance: {account['curr_balance']}")
-            print(
-                f"\t\t\tCurrent cryptocurrency balance: {account['cryptocurr_balance']}\n")
 
             time.sleep(config.get_Check_Frequency())
 
@@ -266,11 +267,13 @@ def start_bot(exchange):
 
         # the bot stops if the last sell order have been closed
         if len(sell_orders) == 0:
-            sys.exit("Stopping bot, nothing left to sell")
+            pass
+            # sys.exit("Stopping bot, nothing left to sell")
 
         # the bot stops if the last buy order have been closed
         if len(buy_orders) == 0:
-            sys.exit("Stopping bot, no money left")
+            pass
+            #sys.exit("Stopping bot, no money left")
 
         # ______________________________________________________
 
