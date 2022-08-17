@@ -107,7 +107,7 @@ def start_bot():
             float(buy_order['price'])
 
     account['total_investment'] = round(
-        initial_order_amount + future_buy_amount, 2)
+        initial_order_amount + future_buy_amount, 5)
 
     print(f"Total Investment: {account['total_investment']}\n")
 
@@ -131,7 +131,6 @@ def start_bot():
         print("Buy Orders:\n")
         for buy_order in buy_orders:
 
-            # print price of the order
             print(
                 f"\tchecking buy order {buy_order['id']}:  {buy_order['price']}\n")
 
@@ -179,7 +178,7 @@ def start_bot():
             current_balance_in_curr = float(
                 balance[currency]['total'] + (balance[cryptocurrency]['total'] * get_crypto_price(exchange, config.get_Symbol())))
             account['total_profit'] = round(
-                current_balance_in_curr - float(INITIAL_BALANCE), 2)
+                current_balance_in_curr - float(INITIAL_BALANCE), 5)
             # update account_infos.json
             write_json_account_infos(account)
 
@@ -239,7 +238,7 @@ def start_bot():
             current_balance_in_curr = float(
                 balance[currency]['total'] + (balance[cryptocurrency]['total'] * get_crypto_price(exchange, config.get_Symbol())))
             account['total_profit'] = round(
-                current_balance_in_curr - float(INITIAL_BALANCE), 2)
+                current_balance_in_curr - float(INITIAL_BALANCE), 5)
             # update account_infos.json
             write_json_account_infos(account)
 

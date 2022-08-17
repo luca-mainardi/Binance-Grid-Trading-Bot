@@ -103,7 +103,7 @@ def start_demo_bot():
 
     # buy initial amount of cryptocurrency
     account['cryptocurr_balance'] += round(first_amount_cryptocurr, 5)
-    account['curr_balance'] -= round(first_amount_curr + fees, 2)
+    account['curr_balance'] -= round(first_amount_curr + fees, 5)
 
     # ______________________________________________________
 
@@ -135,7 +135,7 @@ def start_demo_bot():
             float(buy_order['price'])
 
     account['total_investment'] = round(
-        first_amount_curr + future_buy_amount, 2)
+        first_amount_curr + future_buy_amount, 5)
 
     print(f"Total Investment: {account['total_investment']}\n")
 
@@ -176,10 +176,11 @@ def start_demo_bot():
             if current_price <= buy_order['price'] and (buy_order['status'] == 'open'):
 
                 # buy cryptocurrency
-                account['cryptocurr_balance'] += buy_order['amount']
+                account['cryptocurr_balance'] = round(
+                    account['cryptocurr_balance'] + buy_order['amount'], 5)
                 fees = buy_order['amount'] * current_price * 0.002
-                account['curr_balance'] -= round((buy_order['amount']
-                                                  * current_price) + fees, 2)
+                account['curr_balance'] = round(account['curr_balance']-(buy_order['amount']
+                                                                         * current_price) - fees, 5)
 
                 # close order
                 buy_order['status'] = 'closed'
@@ -213,7 +214,7 @@ def start_demo_bot():
             current_balance_in_curr = float(
                 account['curr_balance']) + (float(account['cryptocurr_balance']) * current_price)
             account['total_profit'] = round(current_balance_in_curr -
-                                            float(INITIAL_BALANCE), 2)
+                                            float(INITIAL_BALANCE), 5)
             # update account_infos.json
             write_json_account_infos(account)
 
@@ -242,10 +243,11 @@ def start_demo_bot():
             if (current_price >= sell_order['price']) and (sell_order['status'] == 'open'):
 
                 # sell cryptocurrency
-                account['cryptocurr_balance'] -= sell_order['amount']
+                account['cryptocurr_balance'] = round(
+                    account['cryptocurr_balance'] - sell_order['amount'], 5)
                 fees = sell_order['amount'] * current_price * 0.002
-                account['curr_balance'] += round((sell_order['amount']
-                                                  * current_price) - fees, 2)
+                account['curr_balance'] = round(
+                    account['curr_balance'] + (sell_order['amount'] * current_price) - fees, 5)
 
                 # close order
                 sell_order['status'] = 'closed'
@@ -277,7 +279,7 @@ def start_demo_bot():
             current_balance_in_curr = float(
                 account['curr_balance']) + (float(account['cryptocurr_balance']) * current_price)
             account['total_profit'] = round(current_balance_in_curr -
-                                            float(INITIAL_BALANCE), 2)
+                                            float(INITIAL_BALANCE), 5)
             # update account_infos.json
             write_json_account_infos(account)
 

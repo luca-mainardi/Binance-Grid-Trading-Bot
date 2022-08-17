@@ -469,13 +469,13 @@ class GUI(tkinter.Tk):
 
                 account_infos = read_json_account_infos()
                 currency_balance_label.config(
-                    text=f"{currency}:\t\t\t{round(account_infos['curr_balance'],2)}")
+                    text=f"{currency}:\t\t\t{round(account_infos['curr_balance'],5)}")
                 crypto_currency_balance_label.config(
                     text=f"{crypto_currency}:\t\t\t{round(account_infos['cryptocurr_balance'],5)}")
                 total_investment_label.config(
-                    text=f"Total Investment:\t\t{round(account_infos['total_investment'],2)}")
+                    text=f"Total Investment:\t\t{round(account_infos['total_investment'],5)}")
                 total_profit_label.config(
-                    text=f"Total Profit:\t\t{round(account_infos['total_profit'],2)}")
+                    text=f"Total Profit:\t\t{round(account_infos['total_profit'],5)}")
 
                 balance_infos_box.after(1000, update_account_infos)
             except Exception as e:
