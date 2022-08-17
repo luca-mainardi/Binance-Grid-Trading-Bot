@@ -1,21 +1,17 @@
+from tkinter import font
+from tkinter import *
 import ccxt
-from DemoBot import start_demo_bot, Demo_Account, Order
+from DemoBot import start_demo_bot, Demo_Account
+import config
 
 from GUI import GUI
-
-
-exchange = ccxt.binance()
-account = Demo_Account(2000)
+import DemoBot
+import multiprocessing
 
 
 def main():
 
-    # bot = Thread(target=start_demo_bot, args=(
-    #     exchange, account))
-    # bot.start()
-    # start_gui(exchange)
-
-    gui = GUI(exchange, account)
+    gui = GUI()
     gui.mainloop()
 
 
