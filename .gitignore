@@ -1,7 +1,3 @@
-buy_lines.json
-sell_lines.json
-config.json
-account_infos.json
-closed_orders.json
+*.json
 .DS_Store
 __pycache__
