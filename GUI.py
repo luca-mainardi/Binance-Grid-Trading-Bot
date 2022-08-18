@@ -1,6 +1,7 @@
 from locale import currency
 import platform
 import multiprocessing
+from time import sleep
 from tkinter import font
 from tkinter.messagebox import NO
 from turtle import up
@@ -15,11 +16,12 @@ import tkmacosx
 import json
 import tkinter
 from PIL import ImageTk, Image
-import DemoBot
+from DemoBot import Demo_Bot
 import config
 import Colours
 import ccxt
-import GridBot
+from GridBot import Grid_Bot
+import time
 
 
 class GUI(tkinter.Tk):
@@ -77,7 +79,7 @@ class GUI(tkinter.Tk):
         def animate(i):
 
             try:
-                self.current_price = DemoBot.get_crypto_price(
+                self.current_price = get_crypto_price(
                     self.exchange, config.get_Symbol())
 
                 buy_orders = read_json_buy_lines()
@@ -198,6 +200,9 @@ class GUI(tkinter.Tk):
 
     def start_bot(self):
         if self.bot is None:
+
+            print("_____________________ START BOT _____________________\n")
+
             # save entries content
             self.save_configuration_params()
 
@@ -208,7 +213,7 @@ class GUI(tkinter.Tk):
             if self.mode == 'demo':
                 try:
                     self.bot = multiprocessing.Process(
-                        target=DemoBot.start_demo_bot)
+                        target=Demo_Bot)
                     self.bot.start()
                 except Exception as e:
                     print(e)
@@ -217,7 +222,7 @@ class GUI(tkinter.Tk):
             elif self.mode == 'binance':
                 try:
                     self.bot = multiprocessing.Process(
-                        target=GridBot.start_bot)
+                        target=Grid_Bot)
                     self.bot.start()
                 except Exception as e:
                     print(e)
@@ -229,6 +234,20 @@ class GUI(tkinter.Tk):
         if self.bot is None:
             pass
         else:
+            print("_____________________ STOP BOT ______________________\n")
+
+            # close binance open limit orders
+            if self.mode == 'binance':
+                try:
+                    exchange = ccxt.binance(
+                        {'apiKey': config.get_API_key(), 'secret': config.get_secret_key()})
+                    exchange.cancel_all_orders(config.get_Symbol())
+
+                except Exception as e:
+                    print(
+                        "Binance ERROR, unable to access account and close open orders")
+                    print(e)
+
             self.bot.terminate()
             self.bot = None
             clear_open_orders_json_files()
@@ -619,3 +638,9 @@ def reset_account_infos_json_file():
     }
     with open("account_infos.json", 'w') as f:
         json.dump(initial_infos, f, indent=4)
+
+
+@staticmethod
+# return the current price of the symbol passed as parameter
+def get_crypto_price(exchange, symbol):
+    return float(exchange.fetch_ticker(symbol)['last'])
