@@ -34,6 +34,10 @@ class GUI(tkinter.Tk):
         self.exchange = ccxt.binance()
         self.configuration_entries = {}
 
+        clear_open_orders_json_files()
+        clear_closed_orders_json_file()
+        reset_account_infos_json_file()
+
         self.initialize_window()
         self.create_configuration_entries()
         self.create_buttons()
@@ -50,8 +54,6 @@ class GUI(tkinter.Tk):
         self.wm_title("Grid Bot")
         self.configure(bg=Colours.BACKGROUND)
         self.resizable(False, False)
-        #self.columnconfigure(2, weight=0)
-        # self.grid_propagate(False)
 
     def create_chart(self):
         plt.style.use('seaborn-deep')
@@ -71,8 +73,6 @@ class GUI(tkinter.Tk):
 
         canvas = FigureCanvasTkAgg(fig, master=self)
         canvas.get_tk_widget().grid(row=0, rowspan=8, column=0, columnspan=2)
-
-        clear_json_files()
 
         def animate(i):
 
@@ -231,7 +231,7 @@ class GUI(tkinter.Tk):
         else:
             self.bot.terminate()
             self.bot = None
-            clear_json_files()
+            clear_open_orders_json_files()
 
     def save_configuration_params(self):
         pass
@@ -594,9 +594,28 @@ def read_json_account_infos(filename="account_infos.json"):
 
 
 @ staticmethod
-def clear_json_files():
+def clear_open_orders_json_files():
     empty_list = {}
     with open("buy_lines.json", 'w') as f:
         json.dump(empty_list, f, indent=4)
     with open("sell_lines.json", 'w') as f:
         json.dump(empty_list, f, indent=4)
+
+
+@staticmethod
+def clear_closed_orders_json_file():
+    empty_list = {}
+    with open("closed_orders.json", 'w') as f:
+        json.dump(empty_list, f, indent=4)
+
+
+@staticmethod
+def reset_account_infos_json_file():
+    initial_infos = {
+        "curr_balance": 0.0,
+        "cryptocurr_balance": 0.0,
+        "total_investment": 0.0,
+        "total_profit": 0.0
+    }
+    with open("account_infos.json", 'w') as f:
+        json.dump(initial_infos, f, indent=4)
