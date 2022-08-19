@@ -14,19 +14,29 @@ import Colours
 import ccxt
 from GridBot import Grid_Bot
 
+"""
+Graphic User Interface that allows you to view the price chart, 
+configure bot parameters, start or stop the bot, and view some
+information about the bot and binance account balance 
+"""
+
 
 class GUI(tkinter.Tk):
 
     def __init__(self) -> None:
         super().__init__()
+
         self.current_price = 0
-        self.bot = None
+
+        self.bot = None  # process in which the bot is executed
         self.mode = 'demo'
+        # lists of coordinates needed to draw the price chart
         self.x_vals = []
         self.y_vals = []
-        self.exchange = ccxt.binance()
+        # list of entries containing configuration parameters
         self.configuration_entries = {}
 
+        # reset all json files
         clear_open_orders_json_files()
         clear_closed_orders_json_file()
         reset_account_infos_json_file()
@@ -34,7 +44,7 @@ class GUI(tkinter.Tk):
         self.initialize_window()
         self.create_configuration_entries()
         self.create_buttons()
-        self.create_mode_switch_buttons()
+        self.create_buttons_switch_mode()
         self.create_label_price()
         self.create_frame_closed_orders()
         self.create_frame_account_infos()
@@ -51,9 +61,12 @@ class GUI(tkinter.Tk):
     def create_chart(self):
         plt.style.use('seaborn-deep')
 
+        exchange = ccxt.binance()
+
         fig = Figure(figsize=(8, 6), dpi=100)
         fig.patch.set_facecolor(Colours.BACKGROUND)
 
+        # chart configuration
         ax = fig.add_subplot(111)
         ax.set_facecolor('black')
         ax.spines['top'].set_color(Colours.LIGHT_GREY)
@@ -71,16 +84,17 @@ class GUI(tkinter.Tk):
 
             try:
                 self.current_price = get_crypto_price(
-                    self.exchange, config.get_Symbol())
+                    exchange, config.get_Symbol())
 
-                buy_orders = read_json_buy_lines()
-                sell_orders = read_json_sell_lines()
+                buy_orders = read_json_buy_orders()
+                sell_orders = read_json_sell_orders()
 
                 self.x_vals.append(datetime.now())
                 self.y_vals.append(self.current_price)
 
                 ax.clear()
 
+                # draw currently open orders
                 for order in buy_orders:
                     if order['status'] == 'open':
                         ax.axhline(
@@ -90,16 +104,19 @@ class GUI(tkinter.Tk):
                         ax.axhline(
                             order['price'], color=Colours.GREEN, linewidth=0.5)
 
+                # draw price line
                 ax.plot(self.x_vals, self.y_vals, color=Colours.LIGHT_GREY)
             except Exception as e:
                 print(e)
-                animate(i=None)
+                animate(i=None)  # try to draw chart again
 
         ani = FuncAnimation(
             fig, animate, interval=config.get_Check_Frequency())
         self.update()
 
     def create_configuration_entries(self):
+
+        # _______________ Left configuration frame _______________
 
         config_frame_left = tkinter.Frame(master=self, bg=Colours.GREY)
         config_frame_left.grid(row=8, column=0)
@@ -133,6 +150,8 @@ class GUI(tkinter.Tk):
         entry_check_frequency.insert(tkinter.END, config.get_Check_Frequency())
         entry_check_frequency.grid(row=2, column=1)
         self.configuration_entries['check_frequency'] = entry_check_frequency
+
+        # _______________ Right configuration frame _______________
 
         config_frame_right = tkinter.Frame(master=self, bg=Colours.GREY)
         config_frame_right.grid(row=8, column=1)
@@ -174,12 +193,13 @@ class GUI(tkinter.Tk):
         buttons_frame.configure(bg=Colours.BACKGROUND)
         buttons_frame.grid(row=8, column=2)
 
+        # Buttons for macOS
         if platform.system() == 'Darwin':
             button_start_bot = tkmacosx.Button(
                 buttons_frame, text="    Start Bot    ", width=350, font=('Calibri', 15), fg='white', bg=Colours.GREEN, borderless=True, command=self.start_bot, focusthickness=0)
             button_stop_bot = tkmacosx.Button(
                 buttons_frame, text="    Stop Bot     ", width=350, font=('Calibri', 15), fg='white', bg=Colours.RED, borderless=True, command=self.stop_bot, focusthickness=0)
-        else:
+        else:  # other OS
             pass  # tkinter buttons
 
         button_start_bot.grid(row=0, column=0)
@@ -192,7 +212,7 @@ class GUI(tkinter.Tk):
     def start_bot(self):
         if self.bot is None:
 
-            # save entries content
+            # Bot starts only if configuration parameters are valid
             if self.save_configuration_params() == False:
                 return
 
@@ -247,11 +267,13 @@ class GUI(tkinter.Tk):
             clear_open_orders_json_files()
 
     def save_configuration_params(self):
+        # check if symbol is valid
         try:
             config.set_Symbol(self.configuration_entries['symbol'].get())
         except ValueError:
             print("Invalid symbol")
             return False
+        # check if other parameters are valid
         try:
             config.set_Position_Size(
                 self.configuration_entries['position_size'].get())
@@ -266,6 +288,8 @@ class GUI(tkinter.Tk):
             print("Invalid configuration parameters")
             print(error)
             return False
+
+        # save API keys, Grid_Bot checks whether they are valid
         config.set_API_key(self.configuration_entries['API_key'].get())
         config.set_secret_key(self.configuration_entries['secret_key'].get())
         return True
@@ -291,14 +315,16 @@ class GUI(tkinter.Tk):
 
                 label_price.config(text=self.current_price)
                 last_price = self.current_price
+                # refresh every second
                 label_price.after(1000, get_current_price)
             except Exception as e:
                 print(e)
-                get_current_price()
+                get_current_price()  #  try again
 
         label_price = tkinter.Label(master=price_frame, font=(
             'calibri', 35, 'bold'), fg=Colours.LIGHT_GREY, bg=Colours.BACKGROUND)
         label_price.grid(row=0, column=1)
+
         get_current_price()
 
     def create_frame_closed_orders(self):
@@ -309,6 +335,7 @@ class GUI(tkinter.Tk):
                                             bg=Colours.BACKGROUND, fg=Colours.LIGHT_GREY, width=34)
         closed_orders_label.grid(row=0, column=0)
 
+        # frame with closed order chronology
         closed_orders_box = tkinter.Frame(
             master=closed_orders_frame, bg='black', highlightbackground=Colours.LIGHT_GREY, highlightthickness=1)
         closed_orders_box.grid(row=1, column=0, columnspan=2)
@@ -317,6 +344,7 @@ class GUI(tkinter.Tk):
             try:
                 closed_orders = read_json_closed_orders()
 
+                # There are not closed orders
                 if len(closed_orders) == 0:
                     label_order_1.config(text="")
                     label_order_2.config(text="")
@@ -409,10 +437,11 @@ class GUI(tkinter.Tk):
                     else:
                         label_order_10.config(fg=Colours.GREEN)
 
+                # refresh every second
                 closed_orders_box.after(1000, closed_order_chronology)
             except Exception as e:
                 print(e)
-                closed_order_chronology()
+                closed_order_chronology()  # try again
 
         label_order_1 = tkinter.Label(
             master=closed_orders_box, bg='black', width=16, font=(
@@ -498,11 +527,11 @@ class GUI(tkinter.Tk):
                     text=f"Total Investment:\t\t{round(account_infos['total_investment'],5)}")
                 total_profit_label.config(
                     text=f"Total Profit:\t\t{round(account_infos['total_profit'],5)}")
-
+                # refresh every second
                 balance_infos_box.after(1000, update_account_infos)
             except Exception as e:
                 print(e)
-                update_account_infos()
+                update_account_infos()  # try again
 
         currency_balance_label = tkinter.Label(
             master=balance_infos_box, fg=Colours.LIGHT_GREY, bg=Colours.GREY, text=f"{currency} balance: ", anchor='w', width=35, padx=5, pady=3)
@@ -547,7 +576,7 @@ class GUI(tkinter.Tk):
         secret_key_label.grid(row=1, column=0)
         secret_key_entry.grid(row=1, column=1)
 
-    def create_mode_switch_buttons(self):
+    def create_buttons_mode_switch(self):
 
         switch_mode_frame = tkinter.Frame(
             master=self, width=35, bg=Colours.BACKGROUND)
@@ -574,13 +603,14 @@ class GUI(tkinter.Tk):
                 API_mode_button.config(font=('Calibri', 27, 'bold'))
             self.update()
 
+        # Buttons for macOS
         if platform.system() == 'Darwin':
             demo_mode_button = tkmacosx.Button(master=switch_mode_frame, command=switch_to_demo_mode, text=' Demo Mode ', font=(
                 'Calibri', 27, 'bold'), fg=Colours.LIGHT_GREY, bg=Colours.DARK_GREY, borderless=True, focuscolor=Colours.BACKGROUND, focusthickness=1)
             API_mode_button = tkmacosx.Button(master=switch_mode_frame, command=switch_to_API_mode, text='  API Mode ', font=(
                 'Calibri', 20, 'bold'), fg=Colours.LIGHT_GREY, bg=Colours.DARK_GREY, borderless=True, focuscolor=Colours.BACKGROUND, focusthickness=1)
 
-        else:
+        else:  # buttons for other OS
             demo_mode_button = tkinter.Button(
                 master=switch_mode_frame, command=switch_to_demo_mode, text='  Demo Mode  ', font=('Calibri', 27, 'bold'), fg=Colours.GREEN)
 
@@ -591,14 +621,22 @@ class GUI(tkinter.Tk):
         API_mode_button.pack(side=tkinter.RIGHT)
 
 
+# return the current price of the symbol passed as parameter
+@staticmethod
+def get_crypto_price(exchange, symbol):
+    return float(exchange.fetch_ticker(symbol)['last'])
+
+
+# _______________ Methods for loading json files ____________________
+
 @ staticmethod
-def read_json_buy_lines(filename="buy_lines.json"):
+def read_json_buy_orders(filename="buy_orders.json"):
     with open(filename, 'r') as json_file:
         return json.load(json_file)
 
 
 @ staticmethod
-def read_json_sell_lines(filename="sell_lines.json"):
+def read_json_sell_orders(filename="sell_orders.json"):
     with open(filename, 'r') as json_file:
         return json.load(json_file)
 
@@ -618,9 +656,9 @@ def read_json_account_infos(filename="account_infos.json"):
 @ staticmethod
 def clear_open_orders_json_files():
     empty_list = {}
-    with open("buy_lines.json", 'w') as f:
+    with open("buy_orders.json", 'w') as f:
         json.dump(empty_list, f, indent=4)
-    with open("sell_lines.json", 'w') as f:
+    with open("sell_orders.json", 'w') as f:
         json.dump(empty_list, f, indent=4)
 
 
@@ -641,9 +679,3 @@ def reset_account_infos_json_file():
     }
     with open("account_infos.json", 'w') as f:
         json.dump(initial_infos, f, indent=4)
-
-
-@staticmethod
-# return the current price of the symbol passed as parameter
-def get_crypto_price(exchange, symbol):
-    return float(exchange.fetch_ticker(symbol)['last'])

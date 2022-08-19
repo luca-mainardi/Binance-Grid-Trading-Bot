@@ -1,9 +1,13 @@
 import json
 
+# save data in config.json
+
 
 def save_data(data):
     with open("config.json", "w") as f:
         json.dump(data, f, indent=4)
+
+# load data from config.json
 
 
 def load_data():
@@ -15,10 +19,12 @@ def load_data():
         return{}
 
 
-PATH = "config.json"
+"""
+Methods for reading and writing config.json elements
+"""
+
 
 # _________________________________ GETTERS ________________________________
-
 
 def get_Symbol():
     config = load_data()
@@ -58,6 +64,7 @@ def get_API_key():
 def get_secret_key():
     config = load_data()
     return config['SECRET_KEY']
+
 
 # _________________________________ SETTERS ________________________________
 

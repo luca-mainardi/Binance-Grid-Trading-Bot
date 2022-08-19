@@ -6,8 +6,11 @@ import json
 import config
 import ccxt
 
-
+"""
+Class that simulates a binance limit order
+"""
 # ____________________ Order Class _____________________
+
 
 class Order:
     def __init__(self, amount: float, price: float, side):
@@ -25,21 +28,24 @@ class Order:
 # ______________________________________________________
 
 
+"""
+Class that starts a bot in demo mode
+
+The demo mode operates on a dummy account with $10000 inside, which is reset every time 
+you start the program. The demo mode does not consider commission-free trading pairs and 
+applies a 0.2% commission to all of them, therefore earnings obtained with the demo mode 
+may differ from the real ones.
+"""
+
+
 class Demo_Bot:
 
     def __init__(self) -> None:
-        try:
-            exchange = ccxt.binance()
-        except Exception as e:
-            print("Binance connection ERROR, stop bot and retry")
-            print(e)
-            return
 
+        exchange = ccxt.binance()
         self.start_demo_bot(exchange)
 
     def start_demo_bot(self, exchange):
-
-        ticker = exchange.fetch_ticker(config.get_Symbol())
 
         INITIAL_BALANCE = 10000.0
 
@@ -63,10 +69,13 @@ class Demo_Bot:
 
         # ___________________ initial order ___________________
 
+        ticker = exchange.fetch_ticker(config.get_Symbol())
+
         # amount to buy
         first_amount_cryptocurr = config.get_Position_Size() * \
             config.get_Num_Sell_Grid_Lines()
         first_amount_curr = first_amount_cryptocurr * float(ticker['last'])
+
         fees = first_amount_curr * 0.002
 
         # buy initial amount of cryptocurrency
@@ -82,12 +91,14 @@ class Demo_Bot:
 
         # _________________ grid construction __________________
 
+        # create buy orders
         for i in range(config.get_Num_Buy_Grid_Lines()):
             price = ticker['bid'] - config.get_Grid_Size() * (i+1)
 
             order = Order(config.get_Position_Size(), price, 'buy')
             buy_orders.append(order.toDict())
 
+        # create sell orders
         for i in range(config.get_Num_Sell_Grid_Lines()):
             price = ticker['bid'] + config.get_Grid_Size() * (i+1)
 
@@ -109,8 +120,8 @@ class Demo_Bot:
         print(f"Total Investment: {account['total_investment']}\n")
 
         # create json files
-        write_json_buy_lines(buy_orders)
-        write_json_sell_lines(sell_orders)
+        write_json_buy_orders(buy_orders)
+        write_json_sell_orders(sell_orders)
         write_json_account_infos(account)
 
         # ______________________________________________________
@@ -118,9 +129,6 @@ class Demo_Bot:
         # _____________________ main loop ______________________
 
         while True:
-            # list containing orders that have been closed during this loop
-            # (they are removed from the respective open order lists at the end of the loop)
-            #closed_orders = []
 
             print("__________________Checking for orders______________________\n")
 
@@ -167,8 +175,8 @@ class Demo_Bot:
                     sell_orders.append(new_sell_order.toDict())
 
                     # update json files
-                    write_json_buy_lines(buy_orders)
-                    write_json_sell_lines(sell_orders)
+                    write_json_buy_orders(buy_orders)
+                    write_json_sell_orders(sell_orders)
                     write_json_closed_orders(closed_orders)
 
                     # update order_count
@@ -235,8 +243,8 @@ class Demo_Bot:
                     buy_orders.append(new_buy_order.toDict())
 
                     # update json files
-                    write_json_buy_lines(buy_orders)
-                    write_json_sell_lines(sell_orders)
+                    write_json_buy_orders(buy_orders)
+                    write_json_sell_orders(sell_orders)
                     write_json_closed_orders(closed_orders)
                     # update order_count
                     order_count += 1
@@ -259,7 +267,7 @@ class Demo_Bot:
 
             # ______________________________________________________
 
-            # ________________ remove closed orders ________________
+            # ________ remove closed orders from open orders lists and json files __________
 
             # list containing the currently open buy orders
             buy_orders = [
@@ -269,21 +277,23 @@ class Demo_Bot:
                 sell_order for sell_order in sell_orders if (sell_order['status'] != 'closed') and (sell_order['side'] == 'sell')]
 
             # update json files
-            write_json_buy_lines(buy_orders)
-            write_json_sell_lines(sell_orders)
+            write_json_buy_orders(buy_orders)
+            write_json_sell_orders(sell_orders)
 
-            # ______________________________________________________
+            # ________________________________________________________________
 
             # __________________ All orders closed _________________
 
-            # the bot stops if the last sell order have been closed
+            # If all buy or sell orders have been executed the bot continues to work waiting
+            # for the price to return to the grid range.
+            # You can alternatively set a stop loss or stop the bot as soon as it exits the grid
+
+            # Nothing left to sell
             if len(sell_orders) == 0:
-                #sys.exit("Stopping bot, nothing left to sell")
                 pass
 
-            # the bot stops if the last buy order have been closed
+            # Nothing left to sell
             if len(buy_orders) == 0:
-                #sys.exit("Stopping bot, no money left")
                 pass
 
             # ______________________________________________________
@@ -302,13 +312,21 @@ class Demo_Bot:
 
 
 @staticmethod
-def write_json_buy_lines(data, filename="buy_lines.json"):
+# return the current price of the symbol passed as parameter
+def get_crypto_price(exchange, symbol):
+    return float(exchange.fetch_ticker(symbol)['last'])
+
+
+# _____________________ Methods for writing to json files _____________________
+
+@staticmethod
+def write_json_buy_orders(data, filename="buy_orders.json"):
     with open(filename, 'w') as f:
         json.dump(data, f, indent=4)
 
 
 @staticmethod
-def write_json_sell_lines(data, filename="sell_lines.json"):
+def write_json_sell_orders(data, filename="sell_orders.json"):
     with open(filename, 'w') as f:
         json.dump(data, f, indent=4)
 
@@ -323,9 +341,3 @@ def write_json_closed_orders(data, filename="closed_orders.json"):
 def write_json_account_infos(data, filename="account_infos.json"):
     with open(filename, 'w') as f:
         json.dump(data, f, indent=4)
-
-
-@staticmethod
-# return the current price of the symbol passed as parameter
-def get_crypto_price(exchange, symbol):
-    return float(exchange.fetch_ticker(symbol)['last'])

@@ -32,6 +32,7 @@ class Grid_Bot:
         # get name of currency and cryptocurrency
         currency = config.get_Symbol().split('/')[1]
         cryptocurrency = config.get_Symbol().split('/')[0]
+
         # get initial currency balance
         INITIAL_BALANCE = exchange.fetchBalance()[currency]['total']
 
@@ -70,12 +71,14 @@ class Grid_Bot:
 
         ticker = exchange.fetch_ticker(config.get_Symbol())
 
+        # create buy orders
         for i in range(config.get_Num_Buy_Grid_Lines()):
             price = ticker['bid'] - config.get_Grid_Size() * (i+1)
             order = exchange.create_limit_buy_order(
                 config.get_Symbol(), config.get_Position_Size(), price)
             buy_orders.append(order)
 
+        # create sell orders
         for i in range(config.get_Num_Sell_Grid_Lines()):
             price = ticker['bid'] + config.get_Grid_Size() * (i+1)
             order = exchange.create_limit_sell_order(
@@ -99,8 +102,8 @@ class Grid_Bot:
         print(f"Total Investment: {account['total_investment']}\n")
 
         # create json files
-        write_json_buy_lines(buy_orders)
-        write_json_sell_lines(sell_orders)
+        write_json_buy_orders(buy_orders)
+        write_json_sell_orders(sell_orders)
         write_json_account_infos(account)
 
         # ______________________________________________________
@@ -108,7 +111,6 @@ class Grid_Bot:
         # _____________________ main loop ______________________
 
         while True:
-            #closed_order_ids = []
 
             print("__________________Checking for orders______________________\n")
 
@@ -148,8 +150,8 @@ class Grid_Bot:
                     sell_orders.append(new_sell_order)
 
                     # update json files
-                    write_json_buy_lines(buy_orders)
-                    write_json_sell_lines(sell_orders)
+                    write_json_buy_orders(buy_orders)
+                    write_json_sell_orders(sell_orders)
                     write_json_closed_orders(closed_orders)
 
                     # update order_count
@@ -179,7 +181,6 @@ class Grid_Bot:
             print("Sell Orders:\n")
             for sell_order in sell_orders:
 
-                # print price of the order
                 print(
                     f"\tchecking sell order {sell_order['id']}:  {sell_order['price']}\n")
 
@@ -209,8 +210,8 @@ class Grid_Bot:
                     buy_orders.append(new_buy_order)
 
                     # update json files
-                    write_json_buy_lines(buy_orders)
-                    write_json_sell_lines(sell_orders)
+                    write_json_buy_orders(buy_orders)
+                    write_json_sell_orders(sell_orders)
                     write_json_closed_orders(closed_orders)
 
                     # update order_count
@@ -234,7 +235,7 @@ class Grid_Bot:
 
             # ______________________________________________________
 
-            # ________________ remove closed orders ________________
+            # ________ remove closed orders from open orders lists and json files __________
 
             for order in closed_orders:
                 # list containing the open buy orders
@@ -245,22 +246,24 @@ class Grid_Bot:
                     sell_order for sell_order in sell_orders if sell_order['id'] != order['id']]
 
             # update json files
-            write_json_buy_lines(buy_orders)
-            write_json_sell_lines(sell_orders)
+            write_json_buy_orders(buy_orders)
+            write_json_sell_orders(sell_orders)
 
-            # ______________________________________________________
+            # ________________________________________________________________
 
             # __________________ All orders closed _________________
 
-            # the bot stops if the last sell order have been closed
+            # If all buy or sell orders have been executed the bot continues to work waiting
+            # for the price to return to the grid range.
+            # You can alternatively set a stop loss or stop the bot as soon as it exits the grid
+
+            # Nothing left to sell
             if len(sell_orders) == 0:
                 pass
-                # sys.exit("Stopping bot, nothing left to sell")
 
-            # the bot stops if the last buy order have been closed
+            # Nothing left to sell
             if len(buy_orders) == 0:
                 pass
-                #sys.exit("Stopping bot, no money left")
 
             # ______________________________________________________
 
@@ -276,17 +279,23 @@ class Grid_Bot:
 
         # ______________________________________________________
 
-# return the current price of the symbol passed as parameter
 
+# return the current price of the symbol passed as parameter
+@staticmethod
+def get_crypto_price(exchange, symbol):
+    return float(exchange.fetch_ticker(symbol)['last'])
+
+
+# _____________________ Methods for writing to json files _____________________
 
 @staticmethod
-def write_json_buy_lines(data, filename="buy_lines.json"):
+def write_json_buy_orders(data, filename="buy_orders.json"):
     with open(filename, 'w') as f:
         json.dump(data, f, indent=4)
 
 
 @staticmethod
-def write_json_sell_lines(data, filename="sell_lines.json"):
+def write_json_sell_orders(data, filename="sell_orders.json"):
     with open(filename, 'w') as f:
         json.dump(data, f, indent=4)
 
@@ -301,9 +310,3 @@ def write_json_closed_orders(data, filename="closed_orders.json"):
 def write_json_account_infos(data, filename="account_infos.json"):
     with open(filename, 'w') as f:
         json.dump(data, f, indent=4)
-
-
-@staticmethod
-# return the current price of the symbol passed as parameter
-def get_crypto_price(exchange, symbol):
-    return float(exchange.fetch_ticker(symbol)['last'])
