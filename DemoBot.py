@@ -1,7 +1,6 @@
 import time
 from pip import List
 import time
-import sys
 import json
 
 import config
