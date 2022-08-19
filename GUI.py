@@ -1,12 +1,5 @@
-from locale import currency
 import platform
 import multiprocessing
-from time import sleep
-from tkinter import font
-from tkinter.messagebox import NO
-from turtle import up
-from wsgiref.simple_server import demo_app
-from matplotlib import image
 from matplotlib.animation import FuncAnimation
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
@@ -15,13 +8,11 @@ from datetime import datetime
 import tkmacosx
 import json
 import tkinter
-from PIL import ImageTk, Image
 from DemoBot import Demo_Bot
 import config
 import Colours
 import ccxt
 from GridBot import Grid_Bot
-import time
 
 
 class GUI(tkinter.Tk):
@@ -201,10 +192,11 @@ class GUI(tkinter.Tk):
     def start_bot(self):
         if self.bot is None:
 
-            print("_____________________ START BOT _____________________\n")
-
             # save entries content
-            self.save_configuration_params()
+            if self.save_configuration_params() == False:
+                return
+
+            print("\n_____________________ START BOT _____________________\n")
 
             # clear chart
             self.x_vals = []
@@ -215,7 +207,7 @@ class GUI(tkinter.Tk):
                     self.bot = multiprocessing.Process(
                         target=Demo_Bot)
                     self.bot.start()
-                except Exception as e:
+                except Exception as e:  # error in multiprocessing
                     print(e)
                     self.bot = None
 
@@ -224,7 +216,7 @@ class GUI(tkinter.Tk):
                     self.bot = multiprocessing.Process(
                         target=Grid_Bot)
                     self.bot.start()
-                except Exception as e:
+                except Exception as e:  # error in multiprocessing
                     print(e)
                     self.bot = None
         else:  # bot already running
@@ -234,16 +226,18 @@ class GUI(tkinter.Tk):
         if self.bot is None:
             pass
         else:
-            print("_____________________ STOP BOT ______________________\n")
+            print("\n_____________________ STOP BOT ______________________\n")
 
             # close binance open limit orders
             if self.mode == 'binance':
                 try:
                     exchange = ccxt.binance(
                         {'apiKey': config.get_API_key(), 'secret': config.get_secret_key()})
+                    exchange.check_required_credentials()
                     exchange.cancel_all_orders(config.get_Symbol())
-
-                except Exception as e:
+                except ccxt.AuthenticationError:  # API key or secret key empty, bot was not running because of a login error
+                    pass
+                except Exception as e:  # bot was running and was stopped but it was not possible to close open orders
                     print(
                         "Binance ERROR, unable to access account and close open orders")
                     print(e)
@@ -253,19 +247,28 @@ class GUI(tkinter.Tk):
             clear_open_orders_json_files()
 
     def save_configuration_params(self):
-        pass
-        config.set_Symbol(self.configuration_entries['symbol'].get())
-        config.set_Position_Size(
-            self.configuration_entries['position_size'].get())
-        config.set_Check_Frequency(
-            self.configuration_entries['check_frequency'].get())
-        config.set_Num_Buy_Grid_Lines(
-            self.configuration_entries['num_buy_grid_lines'].get())
-        config.set_Num_Sell_Grid_Lines(
-            self.configuration_entries['num_sell_grid_lines'].get())
-        config.set_Grid_Size(self.configuration_entries['grid_size'].get())
+        try:
+            config.set_Symbol(self.configuration_entries['symbol'].get())
+        except ValueError:
+            print("Invalid symbol")
+            return False
+        try:
+            config.set_Position_Size(
+                self.configuration_entries['position_size'].get())
+            config.set_Check_Frequency(
+                self.configuration_entries['check_frequency'].get())
+            config.set_Num_Buy_Grid_Lines(
+                self.configuration_entries['num_buy_grid_lines'].get())
+            config.set_Num_Sell_Grid_Lines(
+                self.configuration_entries['num_sell_grid_lines'].get())
+            config.set_Grid_Size(self.configuration_entries['grid_size'].get())
+        except ValueError as error:
+            print("Invalid configuration parameters")
+            print(error)
+            return False
         config.set_API_key(self.configuration_entries['API_key'].get())
         config.set_secret_key(self.configuration_entries['secret_key'].get())
+        return True
 
     def create_label_price(self):
 

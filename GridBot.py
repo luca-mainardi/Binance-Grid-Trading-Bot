@@ -1,10 +1,7 @@
-from tracemalloc import start
-from xmlrpc.client import Boolean
 import ccxt
 import time
 import config
 import time
-import sys
 import json
 from pip import List
 
@@ -13,12 +10,19 @@ class Grid_Bot:
 
     def __init__(self) -> None:
         try:
+            # Access with API keys
             exchange = ccxt.binance(
                 {'apiKey': config.get_API_key(), 'secret': config.get_secret_key()})
+            # throws exception if API key or secret key is empty
             exchange.check_required_credentials()
+            # throws exception if API key or secret key is wrong
+            exchange.fetch_balance()
         except Exception as e:
             print("Binance login ERROR, stop bot and retry")
             print(e)
+            # reset API keys
+            config.set_API_key("")
+            config.set_secret_key("")
             return
 
         self.start_bot(exchange)

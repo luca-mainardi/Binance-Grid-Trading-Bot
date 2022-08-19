@@ -1,5 +1,4 @@
 import json
-from textwrap import indent
 
 
 def save_data(data):
@@ -64,36 +63,62 @@ def get_secret_key():
 
 
 def set_Symbol(new_symbol):
-    config = load_data()
-    config['SYMBOL'] = new_symbol
-    save_data(config)
+
+    # check if symbol is supported
+    valid_symbol = False
+    with open("supported_symbols.txt") as file:
+        for line in file:
+            if line.rstrip() == new_symbol:
+                valid_symbol = True
+
+    if valid_symbol:
+        config = load_data()
+        config['SYMBOL'] = new_symbol
+        save_data(config)
+    else:
+        raise ValueError
 
 
 def set_Position_Size(new_position_size):
+    # throws ValueError if argument is not convertible to float
+    float(new_position_size)
+
     config = load_data()
     config['POSITION_SIZE'] = new_position_size
     save_data(config)
 
 
 def set_Num_Buy_Grid_Lines(new_num_buy_grid_lines):
+    if new_num_buy_grid_lines.isdigit() == False:
+        raise ValueError("N. of orders must be an integer")
+
     config = load_data()
     config['NUM_BUY_GRID_LINES'] = new_num_buy_grid_lines
     save_data(config)
 
 
 def set_Num_Sell_Grid_Lines(new_num_sell_grid_lines):
+    if new_num_sell_grid_lines.isdigit() == False:
+        raise ValueError("N. of orders must be an integer")
+
     config = load_data()
     config['NUM_SELL_GRID_LINES'] = new_num_sell_grid_lines
     save_data(config)
 
 
 def set_Grid_Size(new_Grid_Size):
+    # throws ValueError if argument is not convertible to float
+    float(new_Grid_Size)
+
     config = load_data()
     config['GRID_SIZE'] = new_Grid_Size
     save_data(config)
 
 
 def set_Check_Frequency(new_Check_Frequency):
+    # throws ValueError if argument is not convertible to float
+    float(new_Check_Frequency)
+
     config = load_data()
     config['CHECK_FREQUENCY'] = new_Check_Frequency
     save_data(config)
