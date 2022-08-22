@@ -1,18 +1,26 @@
+import ccxt
 import platform
 import multiprocessing
+from datetime import datetime
+
+import tkmacosx
+import tkinter
+
 from matplotlib.animation import FuncAnimation
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg)
-from datetime import datetime
-import tkmacosx
-import json
-import tkinter
+
+
+from utils.get_crypto_price import *
+from utils.read_json_files import *
+from utils.clear_json_files import *
+
+from GridBot import Grid_Bot
 from DemoBot import Demo_Bot
+
 import config
 import Colours
-import ccxt
-from GridBot import Grid_Bot
 
 """
 Graphic User Interface that allows you to view the price chart, 
@@ -629,63 +637,3 @@ class GUI(tkinter.Tk):
 
         demo_mode_button.pack(side=tkinter.LEFT)
         API_mode_button.pack(side=tkinter.RIGHT)
-
-
-# return the current price of the symbol passed as parameter
-@staticmethod
-def get_crypto_price(exchange, symbol):
-    return float(exchange.fetch_ticker(symbol)['last'])
-
-
-# _______________ Methods for loading json files ____________________
-
-@ staticmethod
-def read_json_buy_orders(filename="buy_orders.json"):
-    with open(filename, 'r') as json_file:
-        return json.load(json_file)
-
-
-@ staticmethod
-def read_json_sell_orders(filename="sell_orders.json"):
-    with open(filename, 'r') as json_file:
-        return json.load(json_file)
-
-
-@ staticmethod
-def read_json_closed_orders(filename="closed_orders.json"):
-    with open(filename, 'r') as json_file:
-        return json.load(json_file)
-
-
-@ staticmethod
-def read_json_account_infos(filename="account_infos.json"):
-    with open(filename, 'r') as json_file:
-        return json.load(json_file)
-
-
-@ staticmethod
-def clear_open_orders_json_files():
-    empty_list = {}
-    with open("buy_orders.json", 'w') as f:
-        json.dump(empty_list, f, indent=4)
-    with open("sell_orders.json", 'w') as f:
-        json.dump(empty_list, f, indent=4)
-
-
-@staticmethod
-def clear_closed_orders_json_file():
-    empty_list = {}
-    with open("closed_orders.json", 'w') as f:
-        json.dump(empty_list, f, indent=4)
-
-
-@staticmethod
-def reset_account_infos_json_file():
-    initial_infos = {
-        "curr_balance": 0.0,
-        "cryptocurr_balance": 0.0,
-        "total_investment": 0.0,
-        "total_profit": 0.0
-    }
-    with open("account_infos.json", 'w') as f:
-        json.dump(initial_infos, f, indent=4)

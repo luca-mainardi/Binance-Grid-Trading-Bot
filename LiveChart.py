@@ -3,11 +3,17 @@ from matplotlib.animation import FuncAnimation
 import matplotlib.pyplot as plt
 from datetime import datetime
 
+
+"""
+This file is NOT necessary for the bot to work, but is a simple
+example of how live plotting of the cryptocurrency price chart works
+"""
+
 exchange = ccxt.binance()
 
 cryptocurr = input("Select Cryptocurrency: ")
 curr = input("Select Currency: ")
-grid_size = int(input("Select grid size: "))
+grid_size = float(input("Select grid size: "))
 num_grid_lines = int(input(("Select number of grid lines: ")))
 
 
