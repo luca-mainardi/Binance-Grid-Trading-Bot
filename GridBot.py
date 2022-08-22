@@ -27,6 +27,58 @@ class Grid_Bot:
 
         self.start_bot(exchange)
 
+    def check_orders_validity(self, exchange, current_price):
+        """
+        Checks that all orders in the grid have a price greater than zero and 
+        that their value is greater than the minimum set by binance
+        """
+
+        # get price of the lowest order in the grid
+        lowest_order_price = current_price - config.get_Num_Buy_Grid_Lines() * \
+            config.get_Grid_Size()
+
+        # check that the lowest order has price greater than zero (all orders have price greater than zero)
+        if lowest_order_price < 0:
+            print("The grid contains orders with negative price, stop bot and retry")
+            return False
+
+        # Get the minimum cost that an order on binance can have in the selected market
+        market = exchange.load_markets()[config.get_Symbol()]
+        min_order = float(market['limits']['cost']['min'])
+
+       # checks that grid orders fulfill binance price requirements
+        if lowest_order_price * config.get_Position_Size() < min_order:
+            print(
+                "Orders do not fulfill binance's minimum price requirements, stop bot and retry")
+            return False
+
+        return True
+
+    def check_balance(self, exchange, initial_balance, current_price):
+        """
+        Check that there are sufficient funds in the account to place the initial order and all future orders.
+        Returns false if there are not enough funds, otherwise returns the total amount
+        of funds required by the bot (total investment)
+        """
+
+        initial_order_amount = float(
+            current_price * config.get_Position_Size() * config.get_Num_Sell_Grid_Lines())
+
+        future_buy_amount = 0
+        for i in range(config.get_Num_Buy_Grid_Lines()):
+            order_price = current_price - (config.get_Grid_Size() * (i+1))
+            future_buy_amount += float(order_price *
+                                       config.get_Position_Size())
+
+        total_investment = round(
+            initial_order_amount + future_buy_amount, 5)
+
+        if initial_balance <= total_investment:
+            print("Insufficient balance, stop bot and retry ")
+            return False
+
+        return total_investment
+
     def start_bot(self, exchange):
 
         # get name of currency and cryptocurrency
@@ -35,6 +87,19 @@ class Grid_Bot:
 
         # get initial currency balance
         INITIAL_BALANCE = exchange.fetchBalance()[currency]['total']
+
+        # get current price
+        current_price = get_crypto_price(exchange, config.get_Symbol())
+
+        # check the validity of grid orders
+        if self.check_orders_validity(exchange, current_price) == False:
+            return
+
+        # check balance
+        total_investment = self.check_balance(
+            exchange, INITIAL_BALANCE, current_price)
+        if total_investment == False:
+            return
 
         # counter of executed orders
         order_count = 0
@@ -52,13 +117,16 @@ class Grid_Bot:
         initial_order = exchange.create_market_buy_order(
             config.get_Symbol(), config.get_Position_Size() * config.get_Num_Sell_Grid_Lines())
 
+        initial_order_amount = float(
+            initial_order['price']) * float(initial_order['amount'])
+
         # ______________________________________________________
 
         # create account infos
         balance = exchange.fetchBalance()
         account = {'curr_balance': balance[currency]['total'],
                    'cryptocurr_balance': balance[cryptocurrency]['total'],
-                   'total_investment': 0.0,
+                   'total_investment': total_investment,
                    'total_profit': 0.0,
                    }
 
@@ -66,6 +134,8 @@ class Grid_Bot:
         print(f"\nInitial currency balance: {account['curr_balance']}")
         print(
             f"Initial cryptocurrecny balance: {account['cryptocurr_balance']}\n")
+        print(f"Initial order: {initial_order_amount}\n")
+        print(f"Total Investment: {account['total_investment']}\n")
 
         # _________________ grid construction __________________
 
@@ -86,20 +156,6 @@ class Grid_Bot:
             sell_orders.append(order)
 
         # ______________________________________________________
-
-        # calculate total investment
-        initial_order_amount = float(
-            initial_order['price']) * float(initial_order['amount'])
-        future_buy_amount = 0
-
-        for buy_order in buy_orders:
-            future_buy_amount += float(buy_order['amount']) * \
-                float(buy_order['price'])
-
-        account['total_investment'] = round(
-            initial_order_amount + future_buy_amount, 5)
-
-        print(f"Total Investment: {account['total_investment']}\n")
 
         # create json files
         write_json_buy_orders(buy_orders)

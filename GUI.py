@@ -254,7 +254,13 @@ class GUI(tkinter.Tk):
                     exchange = ccxt.binance(
                         {'apiKey': config.get_API_key(), 'secret': config.get_secret_key()})
                     exchange.check_required_credentials()
-                    exchange.cancel_all_orders(config.get_Symbol())
+
+                    open_orders = exchange.fetch_open_orders(
+                        config.get_Symbol())
+
+                    if len(open_orders) != 0:
+                        exchange.cancel_all_orders(config.get_Symbol())
+
                 except ccxt.AuthenticationError:  # API key or secret key empty, bot was not running because of a login error
                     pass
                 except Exception as e:  # bot was running and was stopped but it was not possible to close open orders
@@ -305,8 +311,12 @@ class GUI(tkinter.Tk):
 
         last_price = self.current_price
 
-        def get_current_price():
+        def update_label_price():
             try:
+                # update symbol
+                label_symbol.config(text=f"{config.get_Symbol()}   ")
+
+                # update price
                 nonlocal last_price
                 if self.current_price >= last_price:
                     label_price.config(fg=Colours.GREEN)
@@ -316,16 +326,16 @@ class GUI(tkinter.Tk):
                 label_price.config(text=self.current_price)
                 last_price = self.current_price
                 # refresh every second
-                label_price.after(1000, get_current_price)
+                label_price.after(1000, update_label_price)
             except Exception as e:
                 print(e)
-                get_current_price()  #  try again
+                update_label_price()  #  try again
 
         label_price = tkinter.Label(master=price_frame, font=(
             'calibri', 35, 'bold'), fg=Colours.LIGHT_GREY, bg=Colours.BACKGROUND)
         label_price.grid(row=0, column=1)
 
-        get_current_price()
+        update_label_price()
 
     def create_frame_closed_orders(self):
         closed_orders_frame = tkinter.Frame(master=self, bg=Colours.BACKGROUND)
@@ -576,7 +586,7 @@ class GUI(tkinter.Tk):
         secret_key_label.grid(row=1, column=0)
         secret_key_entry.grid(row=1, column=1)
 
-    def create_buttons_mode_switch(self):
+    def create_buttons_switch_mode(self):
 
         switch_mode_frame = tkinter.Frame(
             master=self, width=35, bg=Colours.BACKGROUND)
