@@ -40,3 +40,4 @@ instant the order is executed and the instant a new order is created to reform t
 
 - When the bot is stopped all open orders are cancelled but the bought cryptocurrencies are not sold. If you want to take profit you must sell cryptocurrencies through Binance.
 - A program exit before stopping the bot or an unexpected termination does not effect the cancellation of open orders. it is therefore necessary to close them trough Binance.
+- The program runs in a 1200x720 window size and is not resizable. On some monitors such a window may be too large to be entirely readable.
