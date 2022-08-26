@@ -18,15 +18,15 @@ num_grid_lines = int(input(("Select number of grid lines: ")))
 
 
 def get_crypto_price(cryptocurrency, currency):
-    return float(exchange.fetch_ticker(f"{cryptocurrency}/{currency}")['last'])
+    return float(exchange.fetch_ticker(f"{cryptocurrency}/{currency}")["last"])
 
 
-plt.style.use('seaborn')
+plt.style.use("seaborn")
 
 x_vals = []
 y_vals = []
 
-# # set grid
+# Set grid
 current_price = get_crypto_price(cryptocurr, curr)
 buy_lines = []
 sell_lines = []
@@ -43,11 +43,11 @@ def animate(i):
     plt.cla()
 
     for line in buy_lines:
-        plt.axhline(line, color='red', linewidth=0.5)
+        plt.axhline(line, color="red", linewidth=0.5)
     for line in sell_lines:
-        plt.axhline(line, color='green', linewidth=0.5)
+        plt.axhline(line, color="green", linewidth=0.5)
 
-    plt.plot(x_vals, y_vals, color='black')
+    plt.plot(x_vals, y_vals, color="black")
 
     plt.title(cryptocurr + " Price Live Plotting")
     plt.gcf().canvas.set_window_title("Live Plotting Cryptocurrency")

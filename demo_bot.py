@@ -12,25 +12,24 @@ Class that simulates a binance limit order
 """
 # ____________________ Order Class _____________________
 
-
 class Order:
     def __init__(self, amount: float, price: float, side):
         self.price = price
-        self.amount = amount  # in cryptocurrency
-        self.status = 'open'  # 'open' or 'closed'
-        self.side = side  # 'buy' or 'sell'
+        self.amount = amount  # In cryptocurrency
+        self.status = "open"  # "open" or "closed"
+        self.side = side  # "buy" or "sell"
 
     def toDict(self):
-        return {'price': self.price,
-                'amount': self.amount,
-                'status': self.status,
-                'side': self.side}
+        return {"price": self.price,
+                "amount": self.amount,
+                "status": self.status,
+                "side": self.side}
 
 # ______________________________________________________
 
 
 """
-Class that starts a bot in demo mode
+Class that starts a bot in demo mode.
 
 The demo mode operates on a dummy account with $10000 inside, which is reset every time 
 you start the program. The demo mode does not consider commission-free trading pairs and 
@@ -38,11 +37,9 @@ applies a 0.2% commission to all of them, therefore earnings obtained with the d
 may differ from the real ones.
 """
 
-
-class Demo_Bot:
+class DemoBot:
 
     def __init__(self) -> None:
-
         exchange = ccxt.binance()
         self.start_demo_bot(exchange)
 
@@ -50,247 +47,246 @@ class Demo_Bot:
 
         INITIAL_BALANCE = 10000.0
 
-        # get current price
+        # Get current price
         current_price = get_crypto_price(exchange, config.get_Symbol())
 
-        # check the validity of grid orders
+        # Check the validity of grid orders
         if check_orders_validity(exchange, current_price) == False:
             return
 
-        # check balance
+        # Check balance
         total_investment = check_balance(
             exchange, INITIAL_BALANCE, current_price)
         if total_investment == False:
             return
 
-        # create account infos
-        account = {'curr_balance': INITIAL_BALANCE,
-                   'cryptocurr_balance': 0.0,
-                   'total_investment': 0.0,
-                   'total_profit': 0.0,
+        # Create account infos
+        account = {"curr_balance": INITIAL_BALANCE,
+                   "cryptocurr_balance": 0.0,
+                   "total_investment": 0.0,
+                   "total_profit": 0.0,
                    }
 
-        # counter of order executed
+        # Counter of order executed
         order_count = 0
 
-        # lists with open orders
+        # Lists with open orders
         buy_orders: List[dict] = []
         sell_orders: List[dict] = []
 
-        # list with closed orders
+        # List with closed orders
         closed_orders: List[dict] = []
         write_json_closed_orders(closed_orders)
 
-        # ___________________ initial order ___________________
+        # ___________________ Initial order ___________________
 
         ticker = exchange.fetch_ticker(config.get_Symbol())
 
-        # amount to buy
+        # Amount to buy
         first_amount_cryptocurr = config.get_Position_Size() * \
             config.get_Num_Sell_Grid_Lines()
-        first_amount_curr = first_amount_cryptocurr * float(ticker['last'])
+        first_amount_curr = first_amount_cryptocurr * float(ticker["last"])
 
         fees = first_amount_curr * 0.002
 
-        # buy initial amount of cryptocurrency
-        account['cryptocurr_balance'] += round(first_amount_cryptocurr, 5)
-        account['curr_balance'] -= round(first_amount_curr + fees, 5)
+        # Buy initial amount of cryptocurrency
+        account["cryptocurr_balance"] += round(first_amount_cryptocurr, 5)
+        account["curr_balance"] -= round(first_amount_curr + fees, 5)
 
         # ______________________________________________________
 
-        # print initial balance
+        # Print initial balance
         print(f"\nInitial currency balance: {account['curr_balance']}")
-        print(
-            f"Initial cryptocurrecny balance: {account['cryptocurr_balance']}\n")
+        print(f"Initial cryptocurrecny balance: {account['cryptocurr_balance']}\n")
 
-        # _________________ grid construction __________________
+        # _________________ Grid construction __________________
 
-        # create buy orders
+        # Create buy orders
         for i in range(config.get_Num_Buy_Grid_Lines()):
-            price = ticker['bid'] - config.get_Grid_Size() * (i+1)
+            price = ticker["bid"] - config.get_Grid_Size() * (i+1)
 
-            order = Order(config.get_Position_Size(), price, 'buy')
+            order = Order(config.get_Position_Size(), price, "buy")
             buy_orders.append(order.toDict())
 
-        # create sell orders
+        # Create sell orders
         for i in range(config.get_Num_Sell_Grid_Lines()):
-            price = ticker['bid'] + config.get_Grid_Size() * (i+1)
+            price = ticker["bid"] + config.get_Grid_Size() * (i+1)
 
-            order = Order(config.get_Position_Size(), price, 'sell')
+            order = Order(config.get_Position_Size(), price, "sell")
             sell_orders.append(order.toDict())
 
         # ______________________________________________________
 
-        # calculate total investment
+        # Calculate total investment
         future_buy_amount = 0
 
         for buy_order in buy_orders:
-            future_buy_amount += float(buy_order['amount']) * \
-                float(buy_order['price'])
+            future_buy_amount += float(buy_order["amount"]) * \
+                float(buy_order["price"])
 
-        account['total_investment'] = round(
+        account["total_investment"] = round(
             first_amount_curr + future_buy_amount, 5)
 
         print(f"Total Investment: {account['total_investment']}\n")
 
-        # create json files
+        # Create json files
         write_json_buy_orders(buy_orders)
         write_json_sell_orders(sell_orders)
         write_json_account_infos(account)
 
         # ______________________________________________________
 
-        # _____________________ main loop ______________________
+        # _____________________ Main loop ______________________
 
         while True:
 
             print("__________________Checking for orders______________________\n")
 
-            # _____________________ buy orders ______________________
-            # check all the open buy orders (contained in buy_orders list)
+            # _____________________ Buy orders ______________________
+            # Check all the open buy orders (contained in buy_orders list)
 
             print("Buy Orders:\n")
             for buy_order in buy_orders:
 
-                # wrong order side (sell order in buy_orders)
-                if buy_order['side'] != 'buy':
+                # Wrong order side (sell order in buy_orders)
+                if buy_order["side"] != "buy":
                     raise Exception("Wrong side in buy_orders")
 
-                # print price of the order
+                # Print price of the order
                 print(f"\tChecking buy order {buy_order['price']}")
 
-                # get current price of cryptocurrency
+                # Get current price of cryptocurrency
                 current_price = get_crypto_price(exchange, config.get_Symbol())
                 print(f"\tCurrent price: {current_price}\n")
 
-                # order can be closed
-                if current_price <= buy_order['price'] and (buy_order['status'] == 'open'):
+                # Order can be closed
+                if current_price <= buy_order["price"] and (buy_order["status"] == "open"):
 
-                    # buy cryptocurrency
-                    account['cryptocurr_balance'] = round(
-                        account['cryptocurr_balance'] + buy_order['amount'], 5)
-                    fees = buy_order['amount'] * current_price * 0.002
-                    account['curr_balance'] = round(account['curr_balance']-(buy_order['amount']
+                    # Buy cryptocurrency
+                    account["cryptocurr_balance"] = round(
+                        account["cryptocurr_balance"] + buy_order["amount"], 5)
+                    fees = buy_order["amount"] * current_price * 0.002
+                    account["curr_balance"] = round(account["curr_balance"]-(buy_order["amount"]
                                                                              * current_price) - fees, 5)
 
-                    # close order
-                    buy_order['status'] = 'closed'
+                    # Close order
+                    buy_order["status"] = "closed"
                     closed_orders.append(buy_order)
 
                     print(f"\t\tBuy order executed at {buy_order['price']}")
 
-                    # create a new sell order above the closed order
-                    new_sell_price = buy_order['price'] + \
+                    # Create a new sell order above the closed order
+                    new_sell_price = buy_order["price"] + \
                         config.get_Grid_Size()
                     print(
                         f"\t\tCreating new limit sell order at {new_sell_price}\n")
                     new_sell_order = Order(
-                        config.get_Position_Size(), new_sell_price, 'sell')
+                        config.get_Position_Size(), new_sell_price, "sell")
                     sell_orders.append(new_sell_order.toDict())
 
-                    # update json files
+                    # Update json files
                     write_json_buy_orders(buy_orders)
                     write_json_sell_orders(sell_orders)
                     write_json_closed_orders(closed_orders)
 
-                    # update order_count
+                    # Update order_count
                     order_count += 1
 
-                    # prints balances after the order
+                    # Prints balances after the order
                     print(
                         f"\t\tCurrent currency balance: {account['curr_balance']}")
                     print(
                         f"\t\tCurrent cryptocurrency balance: {account['cryptocurr_balance']}\n")
 
-                # calculate current profit
+                # Calculate current profit
                 current_balance_in_curr = float(
-                    account['curr_balance']) + (float(account['cryptocurr_balance']) * current_price)
-                account['total_profit'] = round(current_balance_in_curr -
+                    account["curr_balance"]) + (float(account["cryptocurr_balance"]) * current_price)
+                account["total_profit"] = round(current_balance_in_curr -
                                                 float(INITIAL_BALANCE), 5)
-                # update account_infos.json
+                # Update account_infos.json
                 write_json_account_infos(account)
 
                 time.sleep(config.get_Check_Frequency())
 
             # ______________________________________________________
 
-            # ____________________ sell orders _____________________
-            # check all the open sell orders (contained in sell_orders list)
+            # ____________________ Sell orders _____________________
+            # Check all the open sell orders (contained in sell_orders list)
 
             print("Sell Orders:\n")
             for sell_order in sell_orders:
 
-                # wrong order side (buy order in sell_orders)
-                if sell_order['side'] != 'sell':
+                # Wrong order side (buy order in sell_orders)
+                if sell_order["side"] != "sell":
                     raise Exception("Wrong side in sell_orders")
 
-                # print price of the order
+                # Print price of the order
                 print(f"\tchecking sell order {sell_order['price']}")
 
-                # get current price of cryptocurrency
+                # Get current price of cryptocurrency
                 current_price = get_crypto_price(exchange, config.get_Symbol())
                 print(f"\tcurrent price: {current_price}\n")
 
-                # order can be closed
-                if (current_price >= sell_order['price']) and (sell_order['status'] == 'open'):
+                # Order can be closed
+                if (current_price >= sell_order["price"]) and (sell_order["status"] == "open"):
 
-                    # sell cryptocurrency
-                    account['cryptocurr_balance'] = round(
-                        account['cryptocurr_balance'] - sell_order['amount'], 5)
-                    fees = sell_order['amount'] * current_price * 0.002
-                    account['curr_balance'] = round(
-                        account['curr_balance'] + (sell_order['amount'] * current_price) - fees, 5)
+                    # Sell cryptocurrency
+                    account["cryptocurr_balance"] = round(
+                        account["cryptocurr_balance"] - sell_order["amount"], 5)
+                    fees = sell_order["amount"] * current_price * 0.002
+                    account["curr_balance"] = round(
+                        account["curr_balance"] + (sell_order["amount"] * current_price) - fees, 5)
 
-                    # close order
-                    sell_order['status'] = 'closed'
+                    # Close order
+                    sell_order["status"] = "closed"
                     closed_orders.append(sell_order)
 
                     print(f"\t\tSell order executed at {current_price}")
 
-                    # create a new buy order below the closed order
-                    new_buy_price = sell_order['price'] - \
+                    # Create a new buy order below the closed order
+                    new_buy_price = sell_order["price"] - \
                         config.get_Grid_Size()
                     print(
                         f"\t\tCreating new limit buy order at {new_buy_price}\n")
                     new_buy_order = Order(
-                        config.get_Position_Size(), new_buy_price, 'buy')
+                        config.get_Position_Size(), new_buy_price, "buy")
                     buy_orders.append(new_buy_order.toDict())
 
-                    # update json files
+                    # Update json files
                     write_json_buy_orders(buy_orders)
                     write_json_sell_orders(sell_orders)
                     write_json_closed_orders(closed_orders)
                     # update order_count
                     order_count += 1
 
-                    # prints balances after the order
+                    # Prints balances after the order
                     print(
                         f"\t\tCurrent currency balance: {account['curr_balance']}")
                     print(
                         f"\t\tCurrent cryptocurrency balance: {account['cryptocurr_balance']}\n")
 
-                # calculate current profit
+                # Calculate current profit
                 current_balance_in_curr = float(
-                    account['curr_balance']) + (float(account['cryptocurr_balance']) * current_price)
-                account['total_profit'] = round(current_balance_in_curr -
+                    account["curr_balance"]) + (float(account["cryptocurr_balance"]) * current_price)
+                account["total_profit"] = round(current_balance_in_curr -
                                                 float(INITIAL_BALANCE), 5)
-                # update account_infos.json
+                # Update account_infos.json
                 write_json_account_infos(account)
 
                 time.sleep(config.get_Check_Frequency())
 
             # ______________________________________________________
 
-            # ________ remove closed orders from open orders lists and json files __________
+            # ________ Remove closed orders from open orders lists and json files __________
 
-            # list containing the currently open buy orders
+            # List containing the currently open buy orders
             buy_orders = [
-                buy_order for buy_order in buy_orders if (buy_order['status'] != 'closed') and (buy_order['side'] == 'buy')]
-            # list containing the currently open sell orders
+                buy_order for buy_order in buy_orders if (buy_order["status"] != "closed") and (buy_order["side"] == "buy")]
+            # List containing the currently open sell orders
             sell_orders = [
-                sell_order for sell_order in sell_orders if (sell_order['status'] != 'closed') and (sell_order['side'] == 'sell')]
+                sell_order for sell_order in sell_orders if (sell_order["status"] != "closed") and (sell_order["side"] == "sell")]
 
-            # update json files
+            # Update json files
             write_json_buy_orders(buy_orders)
             write_json_sell_orders(sell_orders)
 
@@ -312,7 +308,7 @@ class Demo_Bot:
 
             # ______________________________________________________
 
-            # prints balances and profit after checking all orders
+            # Prints balances and profit after checking all orders
             print(f"\nCurrent currency balance: {account['curr_balance']}")
             print(
                 f"Current cryptocurrency balance: {account['cryptocurr_balance']}")

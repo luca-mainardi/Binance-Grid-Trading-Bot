@@ -9,120 +9,125 @@ from utils.bot_precondition_checks import *
 import config
 
 
-class Grid_Bot:
+class GridBot:
 
     def __init__(self) -> None:
         try:
             # Access with API keys
             exchange = ccxt.binance(
-                {'apiKey': config.get_API_key(), 'secret': config.get_secret_key()})
-            # throws exception if API key or secret key is empty
+                {"apiKey": config.get_API_key(), "secret": config.get_secret_key()})
+            # Throws exception if API key or secret key is empty
             exchange.check_required_credentials()
-            # throws exception if API key or secret key is wrong
+            # Throws exception if API key or secret key is wrong
             exchange.fetch_balance()
         except Exception as e:
             print("Binance login ERROR, stop bot and retry")
             print(e)
-            # reset API keys
+            # Reset API keys
             config.set_API_key("")
             config.set_secret_key("")
             return
 
         self.start_bot(exchange)
 
+
     def start_bot(self, exchange):
 
-        # get name of currency and cryptocurrency
-        currency = config.get_Symbol().split('/')[1]
-        cryptocurrency = config.get_Symbol().split('/')[0]
+        # Get name of currency and cryptocurrency
+        currency = config.get_Symbol().split("/")[1]
+        cryptocurrency = config.get_Symbol().split("/")[0]
 
-        # get initial currency balance
-        INITIAL_BALANCE = exchange.fetchBalance()[currency]['total']
+        # Get initial currency balance
+        INITIAL_BALANCE = exchange.fetchBalance()[currency]["total"]
 
-        # get current price
+        # Get current price
         current_price = get_crypto_price(exchange, config.get_Symbol())
 
-        # check the validity of grid orders
+        # Check the validity of grid orders
         if check_orders_validity(exchange, current_price) == False:
             return
 
-        # check balance
+        # Check balance
         total_investment = check_balance(
             exchange, INITIAL_BALANCE, current_price)
         if total_investment == False:
             return
 
-        # counter of executed orders
+        # Counter of executed orders
         order_count = 0
 
-        # lists with open orders
+        # Lists with open orders
         buy_orders: List[dict] = []
         sell_orders: List[dict] = []
 
-        # list with closed orders
+        # List with closed orders
         closed_orders: List[dict] = []
         write_json_closed_orders(closed_orders)
 
-        # ___________________ initial order ___________________
+
+        # ___________________ Initial order ___________________
 
         initial_order = exchange.create_market_buy_order(
             config.get_Symbol(), config.get_Position_Size() * config.get_Num_Sell_Grid_Lines())
 
         initial_order_amount = float(
-            initial_order['price']) * float(initial_order['amount'])
+            initial_order["price"]) * float(initial_order["amount"])
 
         # ______________________________________________________
 
-        # create account infos
+
+        # Create account infos
         balance = exchange.fetchBalance()
-        account = {'curr_balance': balance[currency]['total'],
-                   'cryptocurr_balance': balance[cryptocurrency]['total'],
-                   'total_investment': total_investment,
-                   'total_profit': 0.0,
+        account = {"curr_balance": balance[currency]["total"],
+                   "cryptocurr_balance": balance[cryptocurrency]["total"],
+                   "total_investment": total_investment,
+                   "total_profit": 0.0,
                    }
 
-        # print initial balance
+        # Print initial balance
         print(f"\nInitial currency balance: {account['curr_balance']}")
         print(
             f"Initial cryptocurrecny balance: {account['cryptocurr_balance']}\n")
         print(f"Initial order: {initial_order_amount}\n")
         print(f"Total Investment: {account['total_investment']}\n")
 
-        # _________________ grid construction __________________
+
+        # _________________ Grid construction __________________
 
         ticker = exchange.fetch_ticker(config.get_Symbol())
 
-        # create buy orders
+        # Create buy orders
         for i in range(config.get_Num_Buy_Grid_Lines()):
-            price = ticker['bid'] - config.get_Grid_Size() * (i+1)
+            price = ticker["bid"] - config.get_Grid_Size() * (i+1)
             order = exchange.create_limit_buy_order(
                 config.get_Symbol(), config.get_Position_Size(), price)
             buy_orders.append(order)
 
-        # create sell orders
+        # Create sell orders
         for i in range(config.get_Num_Sell_Grid_Lines()):
-            price = ticker['bid'] + config.get_Grid_Size() * (i+1)
+            price = ticker["bid"] + config.get_Grid_Size() * (i+1)
             order = exchange.create_limit_sell_order(
                 config.get_Symbol(), config.get_Position_Size(), price)
             sell_orders.append(order)
 
         # ______________________________________________________
 
-        # create json files
+        # Create json files
         write_json_buy_orders(buy_orders)
         write_json_sell_orders(sell_orders)
         write_json_account_infos(account)
 
         # ______________________________________________________
 
-        # _____________________ main loop ______________________
+        
+        # _____________________ Main loop ______________________
 
         while True:
 
             print("__________________Checking for orders______________________\n")
 
-            # _____________________ buy orders ______________________
-            # check all the open buy orders (contained in buy_orders list)
+            # _____________________ Buy orders ______________________
+            # Check all the open buy orders (contained in buy_orders list)
 
             print("Buy Orders:\n")
             for buy_order in buy_orders:
@@ -132,58 +137,59 @@ class Grid_Bot:
 
                 try:
                     order = exchange.fetch_order(
-                        buy_order['id'], config.get_Symbol())
+                        buy_order["id"], config.get_Symbol())
                 except Exception as e:
                     print("Request failed, retrying...")
                     continue
 
-                # order has been executed
-                if order['status'] == 'closed':
+                # Order has been executed
+                if order["status"] == "closed":
 
-                    # set status of the order in the list buy_orders to 'closed' so that
+                    # Set status of the order in the list buy_orders to "closed" so that
                     # the order is no longer shown in the chart of the GUI
-                    buy_order['status'] = 'closed'
+                    buy_order["status"] = "closed"
                     closed_orders.append(order)
 
                     print(f"\t\tBuy order executed at {order['price']}")
 
-                    # create a new sell order above the closed order
+                    # Create a new sell order above the closed order
                     new_sell_price = float(
-                        order['price']) + config.get_Grid_Size()
+                        order["price"]) + config.get_Grid_Size()
                     print(
                         f"\t\tCreating new limit sell order at {new_sell_price}\n")
                     new_sell_order = exchange.create_limit_sell_order(
                         config.get_Symbol(), config.get_Position_Size(), new_sell_price)
                     sell_orders.append(new_sell_order)
 
-                    # update json files
+                    # Update json files
                     write_json_buy_orders(buy_orders)
                     write_json_sell_orders(sell_orders)
                     write_json_closed_orders(closed_orders)
 
-                    # update order_count
+                    # Update order_count
                     order_count += 1
 
             # ______________________________________________________
 
-                # update balance
+                # Update balance
                 balance = exchange.fetchBalance()
-                account['curr_balance'] = balance[currency]['total']
-                account['cryptocurr_balance'] = balance[cryptocurrency]['total']
-                # calculate current profit
+                account["curr_balance"] = balance[currency]["total"]
+                account["cryptocurr_balance"] = balance[cryptocurrency]["total"]
+                # Calculate current profit
                 current_balance_in_curr = float(
-                    balance[currency]['total'] + (balance[cryptocurrency]['total'] * get_crypto_price(exchange, config.get_Symbol())))
-                account['total_profit'] = round(
+                    balance[currency]["total"] + (balance[cryptocurrency]["total"] * get_crypto_price(exchange, config.get_Symbol())))
+                account["total_profit"] = round(
                     current_balance_in_curr - float(INITIAL_BALANCE), 5)
-                # update account_infos.json
+                # Update account_infos.json
                 write_json_account_infos(account)
 
                 time.sleep(config.get_Check_Frequency())
 
             # ______________________________________________________
 
-            # ____________________ sell orders _____________________
-            # check all the open sell orders (contained in sell_orders list)
+
+            # ____________________ Sell orders _____________________
+            # Check all the open sell orders (contained in sell_orders list)
 
             print("Sell Orders:\n")
             for sell_order in sell_orders:
@@ -193,70 +199,72 @@ class Grid_Bot:
 
                 try:
                     order = exchange.fetch_order(
-                        sell_order['id'], config.get_Symbol())
+                        sell_order["id"], config.get_Symbol())
                 except Exception as e:
                     print("Request failed, retrying...")
                     continue
 
-                if order['status'] == 'closed':
+                if order["status"] == "closed":
 
-                    # set status of the order in the list sell_orders to 'closed' so that
+                    # Set status of the order in the list sell_orders to "closed" so that
                     # the order is no longer shown in the chart of the GUI
-                    sell_order['status'] = 'closed'
+                    sell_order["status"] = "closed"
                     closed_orders.append(order)
 
                     print(f"\t\tSell order executed at {order['price']}")
 
-                    # create a new buy order under the closed order
+                    # Create a new buy order under the closed order
                     new_buy_price = float(
-                        order['price']) - config.get_Grid_Size()
+                        order["price"]) - config.get_Grid_Size()
                     print(
                         f"\t\tCreating new limit buy order at {new_buy_price}\n")
                     new_buy_order = exchange.create_limit_buy_order(
                         config.get_Symbol(), config.get_Position_Size(), new_buy_price)
                     buy_orders.append(new_buy_order)
 
-                    # update json files
+                    # Update json files
                     write_json_buy_orders(buy_orders)
                     write_json_sell_orders(sell_orders)
                     write_json_closed_orders(closed_orders)
 
-                    # update order_count
+                    # Update order_count
                     order_count += 1
 
             # ______________________________________________________
 
-                # update balance
+                # Update balance
                 balance = exchange.fetchBalance()
-                account['curr_balance'] = balance[currency]['total']
-                account['cryptocurr_balance'] = balance[cryptocurrency]['total']
-                # calculate current profit
+                account["curr_balance"] = balance[currency]["total"]
+                account["cryptocurr_balance"] = balance[cryptocurrency]["total"]
+                # Calculate current profit
                 current_balance_in_curr = float(
-                    balance[currency]['total'] + (balance[cryptocurrency]['total'] * get_crypto_price(exchange, config.get_Symbol())))
-                account['total_profit'] = round(
+                    balance[currency]["total"] + (balance[cryptocurrency]["total"] * get_crypto_price(exchange, config.get_Symbol())))
+                account["total_profit"] = round(
                     current_balance_in_curr - float(INITIAL_BALANCE), 5)
-                # update account_infos.json
+                # Update account_infos.json
                 write_json_account_infos(account)
 
                 time.sleep(config.get_Check_Frequency())
 
             # ______________________________________________________
 
-            # ________ remove closed orders from open orders lists and json files __________
+
+            # ________ Remove closed orders from open orders lists and json files __________
 
             for order in closed_orders:
-                # list containing the open buy orders
+                # List containing the open buy orders
                 buy_orders = [
-                    buy_order for buy_order in buy_orders if buy_order['id'] != order['id']]
-                # list containing the open sell orders
+                    buy_order for buy_order in buy_orders if buy_order["id"] != order["id"]]
+                # List containing the open sell orders
                 sell_orders = [
-                    sell_order for sell_order in sell_orders if sell_order['id'] != order['id']]
+                    sell_order for sell_order in sell_orders if sell_order["id"] != order["id"]]
 
-            # update json files
+            # Update json files
             write_json_buy_orders(buy_orders)
             write_json_sell_orders(sell_orders)
 
             # ________________________________________________________________
+
 
             # __________________ All orders closed _________________
 
@@ -274,7 +282,7 @@ class Grid_Bot:
 
             # ______________________________________________________
 
-            # prints balances and profit after checking all orders
+            # Prints balances and profit after checking all orders
             print(f"\nCurrent currency balance: {account['curr_balance']}")
             print(
                 f"Current cryptocurrency balance: {account['cryptocurr_balance']}")
