@@ -30,6 +30,7 @@ configure bot parameters, start or stop the bot, and view some
 information about the bot and binance account balance 
 """
 
+
 class GUI(tkinter.Tk):
 
     def __init__(self) -> None:
@@ -63,14 +64,12 @@ class GUI(tkinter.Tk):
         self.create_frame_login()
         self.create_chart()
 
-
     def initialize_window(self):
 
         self.geometry("1200x720")
         self.wm_title("Grid Bot")
         self.configure(bg=Colours.BACKGROUND)
         self.resizable(False, False)
-
 
     def create_chart(self):
         plt.style.use("seaborn-deep")
@@ -126,7 +125,6 @@ class GUI(tkinter.Tk):
         ani = FuncAnimation(
             fig, animate, interval=config.get_Check_Frequency())
         self.update()
-
 
     def create_configuration_entries(self):
 
@@ -202,7 +200,6 @@ class GUI(tkinter.Tk):
         entry_grid_size.grid(row=2, column=1)
         self.configuration_entries["grid_size"] = entry_grid_size
 
-
     def create_buttons(self):
         buttons_frame = tkinter.Frame(master=self)
         buttons_frame.configure(bg=Colours.BACKGROUND)
@@ -226,7 +223,6 @@ class GUI(tkinter.Tk):
         empty_label = tkinter.Label(
             buttons_frame, bg=Colours.BACKGROUND, font=("Calibri", 6))
         empty_label.grid(row=1, column=0)
-
 
     def start_bot(self):
         if self.bot is None:
@@ -261,7 +257,6 @@ class GUI(tkinter.Tk):
         else:  # Bot already running
             pass
 
-
     def stop_bot(self):
         if self.bot is None:
             pass
@@ -292,7 +287,6 @@ class GUI(tkinter.Tk):
             self.bot = None
             clear_open_orders_json_files()
 
-
     def save_configuration_params(self):
         # Check if symbol is valid
         try:
@@ -321,7 +315,6 @@ class GUI(tkinter.Tk):
         config.set_secret_key(self.configuration_entries["secret_key"].get())
         return True
 
-
     def create_label_price(self):
 
         price_frame = tkinter.Frame(master=self)
@@ -345,7 +338,7 @@ class GUI(tkinter.Tk):
                 else:
                     label_price.config(fg=Colours.RED)
 
-                label_price.config(text=round(self.current_price,1))
+                label_price.config(text=round(self.current_price, 1))
                 last_price = self.current_price
                 # Refresh every second
                 label_price.after(1000, update_label_price)
@@ -358,7 +351,6 @@ class GUI(tkinter.Tk):
         label_price.grid(row=0, column=1)
 
         update_label_price()
-
 
     def create_frame_closed_orders(self):
         closed_orders_frame = tkinter.Frame(master=self, bg=Colours.BACKGROUND)
@@ -528,10 +520,10 @@ class GUI(tkinter.Tk):
 
         closed_order_chronology()
 
-
     def create_frame_account_infos(self):
 
-        balance_infos_frame = tkinter.Frame(master=self, bg=Colours.BACKGROUND, width=35)
+        balance_infos_frame = tkinter.Frame(
+            master=self, bg=Colours.BACKGROUND, width=35)
         balance_infos_frame.grid(row=3, column=2)
 
         grid_bot_label = tkinter.Label(
@@ -560,7 +552,7 @@ class GUI(tkinter.Tk):
                     text=f"Total Investment:\t\t{round(account_infos['total_investment'],5)}")
                 total_profit_label.config(
                     text=f"Total Profit:\t\t{round(account_infos['total_profit'],5)}")
-                
+
                 # Refresh every second
                 balance_infos_box.after(1000, update_account_infos)
             except Exception as e:
@@ -585,7 +577,6 @@ class GUI(tkinter.Tk):
         total_profit_label.grid(row=3, column=0)
 
         update_account_infos()
-
 
     def create_frame_login(self):
 
@@ -612,7 +603,6 @@ class GUI(tkinter.Tk):
         secret_key_label.grid(row=1, column=0)
         secret_key_entry.grid(row=1, column=1)
 
-    
     def create_buttons_switch_mode(self):
 
         switch_mode_frame = tkinter.Frame(
@@ -648,12 +638,12 @@ class GUI(tkinter.Tk):
 
         else:  # Buttons for other OS
             demo_mode_button = tkinter.Button(
-                master=switch_mode_frame, command=switch_to_demo_mode, text="  Demo Mode  ", font=("Calibri", 23, "bold"), fg=Colours.LIGHT_GREY, bg=Colours.DARK_GREY, 
-                    height=1)
+                master=switch_mode_frame, command=switch_to_demo_mode, text="  Demo Mode  ", font=("Calibri", 23, "bold"), fg=Colours.LIGHT_GREY,
+                bg=Colours.DARK_GREY, height=1)
 
             API_mode_button = tkinter.Button(
-                master=switch_mode_frame, command=switch_to_API_mode, text="  API Mode  ", font=("Calibri", 18, "bold"), fg=Colours.LIGHT_GREY, bg=Colours.DARK_GREY, 
-                    height=1)
+                master=switch_mode_frame, command=switch_to_API_mode, text="  API Mode  ", font=("Calibri", 18, "bold"), fg=Colours.LIGHT_GREY,
+                bg=Colours.DARK_GREY,  height=1)
 
         demo_mode_button.pack(side=tkinter.LEFT)
         API_mode_button.pack(side=tkinter.RIGHT)
