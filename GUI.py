@@ -15,6 +15,7 @@ from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg)
 from utils.get_crypto_price import *
 from utils.read_json_files import *
 from utils.clear_json_files import *
+from utils.create_config import create_config
 
 from GridBot import Grid_Bot
 from DemoBot import Demo_Bot
@@ -48,6 +49,9 @@ class GUI(tkinter.Tk):
         clear_open_orders_json_files()
         clear_closed_orders_json_file()
         reset_account_infos_json_file()
+
+        # create config.json if it does not exist
+        create_config()
 
         self.initialize_window()
         self.create_configuration_entries()
@@ -204,11 +208,14 @@ class GUI(tkinter.Tk):
         # Buttons for macOS
         if platform.system() == 'Darwin':
             button_start_bot = tkmacosx.Button(
-                buttons_frame, text="    Start Bot    ", width=350, font=('Calibri', 15), fg='white', bg=Colours.GREEN, borderless=True, command=self.start_bot, focusthickness=0)
+                buttons_frame, text="    Start Bot    ", width=350, font=('Calibri', 12), fg='white', bg=Colours.GREEN, borderless=True, command=self.start_bot, focusthickness=0)
             button_stop_bot = tkmacosx.Button(
-                buttons_frame, text="    Stop Bot     ", width=350, font=('Calibri', 15), fg='white', bg=Colours.RED, borderless=True, command=self.stop_bot, focusthickness=0)
+                buttons_frame, text="    Stop Bot     ", width=350, font=('Calibri', 12), fg='white', bg=Colours.RED, borderless=True, command=self.stop_bot, focusthickness=0)
         else:  # other OS
-            pass  # tkinter buttons
+            button_start_bot = tkinter.Button(
+                buttons_frame, text="    Start Bot    ", width=35, height=1, font=('Calibri', 15), fg='white', bg=Colours.GREEN, command=self.start_bot)
+            button_stop_bot = tkinter.Button(
+                buttons_frame, text="    Stop Bot     ", width=35, height=1, font=('Calibri', 15), fg='white', bg=Colours.RED, command=self.stop_bot)
 
         button_start_bot.grid(row=0, column=0)
         button_stop_bot.grid(row=2, column=0)
@@ -311,43 +318,43 @@ class GUI(tkinter.Tk):
     def create_label_price(self):
 
         price_frame = tkinter.Frame(master=self)
-        price_frame.place(x=800, y=30)
+        price_frame.grid(row=0,column=2)
 
         label_symbol = tkinter.Label(master=price_frame, text=f"{config.get_Symbol()}   ", font=(
-            'calibri', 35, 'bold'), fg=Colours.LIGHT_GREY, bg=Colours.BACKGROUND)
+            'calibri', 30, 'bold'), fg=Colours.LIGHT_GREY, bg=Colours.BACKGROUND)
         label_symbol.grid(row=0, column=0)
 
         last_price = self.current_price
 
         def update_label_price():
             try:
-                # update symbol
+                # Update symbol
                 label_symbol.config(text=f"{config.get_Symbol()}   ")
 
-                # update price
+                # Update price
                 nonlocal last_price
                 if self.current_price >= last_price:
                     label_price.config(fg=Colours.GREEN)
                 else:
                     label_price.config(fg=Colours.RED)
 
-                label_price.config(text=self.current_price)
+                label_price.config(text=round(self.current_price,1))
                 last_price = self.current_price
-                # refresh every second
+                # Refresh every second
                 label_price.after(1000, update_label_price)
             except Exception as e:
                 print(e)
-                update_label_price()  #  try again
+                update_label_price()  #  Try again
 
         label_price = tkinter.Label(master=price_frame, font=(
-            'calibri', 35, 'bold'), fg=Colours.LIGHT_GREY, bg=Colours.BACKGROUND)
+            'calibri', 30, 'bold'), fg=Colours.LIGHT_GREY, bg=Colours.BACKGROUND)
         label_price.grid(row=0, column=1)
 
         update_label_price()
 
     def create_frame_closed_orders(self):
         closed_orders_frame = tkinter.Frame(master=self, bg=Colours.BACKGROUND)
-        closed_orders_frame.grid(row=3, column=2)
+        closed_orders_frame.grid(row=1, column=2)
 
         closed_orders_label = tkinter.Label(master=closed_orders_frame, text="Closed Orders",
                                             bg=Colours.BACKGROUND, fg=Colours.LIGHT_GREY, width=34)
@@ -515,8 +522,8 @@ class GUI(tkinter.Tk):
 
     def create_frame_account_infos(self):
 
-        balance_infos_frame = tkinter.Frame(master=self, bg=Colours.BACKGROUND)
-        balance_infos_frame.grid(row=4, column=2)
+        balance_infos_frame = tkinter.Frame(master=self, bg=Colours.BACKGROUND, width=35)
+        balance_infos_frame.grid(row=3, column=2)
 
         grid_bot_label = tkinter.Label(
             master=balance_infos_frame, text="Grid Bot", fg=Colours.LIGHT_GREY, bg=Colours.BACKGROUND)
@@ -571,8 +578,8 @@ class GUI(tkinter.Tk):
         update_account_infos()
 
     def create_frame_login(self):
-        login_frame = tkinter.Frame(master=self, bg=Colours.GREY)
-        login_frame.grid(row=6, column=2)
+        login_frame = tkinter.Frame(master=self, bg=Colours.GREY, width=35)
+        login_frame.grid(row=5, column=2)
 
         API_key_label = tkinter.Label(
             master=login_frame, text="API Key", fg=Colours.LIGHT_GREY, width=10, bg=Colours.GREY)
@@ -598,7 +605,7 @@ class GUI(tkinter.Tk):
 
         switch_mode_frame = tkinter.Frame(
             master=self, width=35, bg=Colours.BACKGROUND)
-        switch_mode_frame.grid(row=7, column=2)
+        switch_mode_frame.grid(row=6, column=2)
 
         def switch_to_demo_mode():
 
@@ -607,8 +614,8 @@ class GUI(tkinter.Tk):
                 print("Switch to Demo Mode")
                 self.mode = 'demo'
 
-                demo_mode_button.config(font=('Calibri', 27, 'bold'))
-                API_mode_button.config(font=('Calibri', 20, 'bold'))
+                demo_mode_button.config(font=('Calibri', 23, 'bold'))
+                API_mode_button.config(font=('Calibri', 18, 'bold'))
             self.update()
 
         def switch_to_API_mode():
@@ -617,23 +624,25 @@ class GUI(tkinter.Tk):
                 print("Switch to API Mode")
                 self.mode = 'binance'
 
-                demo_mode_button.config(font=('Calibri', 20, 'bold'))
-                API_mode_button.config(font=('Calibri', 27, 'bold'))
+                demo_mode_button.config(font=('Calibri', 18, 'bold'))
+                API_mode_button.config(font=('Calibri', 23, 'bold'))
             self.update()
 
         # Buttons for macOS
         if platform.system() == 'Darwin':
             demo_mode_button = tkmacosx.Button(master=switch_mode_frame, command=switch_to_demo_mode, text=' Demo Mode ', font=(
-                'Calibri', 27, 'bold'), fg=Colours.LIGHT_GREY, bg=Colours.DARK_GREY, borderless=True, focuscolor=Colours.BACKGROUND, focusthickness=1)
+                'Calibri', 23, 'bold'), fg=Colours.LIGHT_GREY, bg=Colours.DARK_GREY, borderless=True, focuscolor=Colours.BACKGROUND, focusthickness=1)
             API_mode_button = tkmacosx.Button(master=switch_mode_frame, command=switch_to_API_mode, text='  API Mode ', font=(
-                'Calibri', 20, 'bold'), fg=Colours.LIGHT_GREY, bg=Colours.DARK_GREY, borderless=True, focuscolor=Colours.BACKGROUND, focusthickness=1)
+                'Calibri', 18, 'bold'), fg=Colours.LIGHT_GREY, bg=Colours.DARK_GREY, borderless=True, focuscolor=Colours.BACKGROUND, focusthickness=1)
 
         else:  # buttons for other OS
             demo_mode_button = tkinter.Button(
-                master=switch_mode_frame, command=switch_to_demo_mode, text='  Demo Mode  ', font=('Calibri', 27, 'bold'), fg=Colours.GREEN)
+                master=switch_mode_frame, command=switch_to_demo_mode, text='  Demo Mode  ', font=('Calibri', 23, 'bold'), fg=Colours.GREEN, bg=Colours.DARK_GREY, 
+                    height=1)
 
             API_mode_button = tkinter.Button(
-                master=switch_mode_frame, command=switch_to_API_mode, text='  API Mode  ', font=('Calibri', 20, 'bold'), fg=Colours.LIGHT_GREY)
+                master=switch_mode_frame, command=switch_to_API_mode, text='  API Mode  ', font=('Calibri', 18, 'bold'), fg=Colours.LIGHT_GREY, bg=Colours.DARK_GREY, 
+                    height=1)
 
         demo_mode_button.pack(side=tkinter.LEFT)
         API_mode_button.pack(side=tkinter.RIGHT)
