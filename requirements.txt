@@ -1,3 +1,4 @@
 ccxt
 tkmacos
 matplotlib
+tkinter
